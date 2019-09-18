@@ -15,7 +15,7 @@ export function imgFilter({ image, type }) {
  * @param image image对象
  */
 export function imageLoad({ image, src }) {
-  if (!image && !src) return
+  if (!image && !src) return Promise.reject(Error('请检查参数中是否有图片链接'))
   let img = image
   if (src) {
     img = new Image()

@@ -9,6 +9,7 @@
          ref="elCrop">
       <div v-if="currentImg"
            class="crop-img-container"
+           ref="crop"
            :style="cropSize">
         <img class="center-img"
              :style="imgStyle"
@@ -49,15 +50,14 @@ import img9 from '@/assets/9.jpg'
 import img10 from '@/assets/10.jpg'
 import img11 from '@/assets/11.jpg'
 import img12 from '@/assets/12.jpg'
-import '../utils/media'
+import { imageLoad, imgFilter } from '../utils/media'
 export default {
   name: 'DemoPage',
   data () {
     return {
       imageList: [img1, img2, img3, img4, img5, img6, img7, img8, img9, img10, img11, img12],
       selectIndex: 0,
-      selectList: [],
-      currentImg: null
+      selectList: []
     }
   },
   computed: {
@@ -67,6 +67,9 @@ export default {
         transform: `translate(${-crop.x}px,${-crop.y}px) scale(${crop.scale})`
       }
     },
+    currentImg () {
+      return this.selectList[this.selectIndex]
+    },
     cropSize () {
       return {
         width: `${100}vw`,
@@ -75,10 +78,24 @@ export default {
     }
   },
   methods: {
+    /**计算图片铺满缩放 */
+    fullScale ({ type }) {
+      const { width: imgWidth, height: imgHeight } = this.currentImg.image
+      const { clientWidth: cropWidth, clientHeight: cropHeight } = this.$refs.crop.clientWidth
+      let scale = 1
+      if (type === 'width') {
+        // 计算宽度100%所需缩放
+        scale = cropWidth / imgWidth
+      } else {
+        // 计算高度100%所需缩放
+        scale = cropHeight / imgHeight
+      }
+      return scale
+    },
     async imgClick (img) {
       // 更改当前选中项
       this.selectIndex = this.imageList.findIndex(i => i === img)
-      const image = await ImageLoad({ src: img })
+      const image = await imageLoad({ src: img })
       // 初始化选中项数据
       const item = {
         url: img,
@@ -91,7 +108,18 @@ export default {
         }
       }
       this.selectList.push(item)
-      this.currentImg = item
+            /**
+       * 计算图片缩放比例以及坐标
+       * 1.获取裁切框比例
+       * 2.计算横纵坐标
+       * */
+      const { clientWidth: cropWidth, clientHeight: cropHeight } = this.$refs.crop.clientWidth
+      // 如果裁切宽度大于高度 则按高度取值
+      if (cropWidth > cropHeight) {
+        this.crop.scale = this.fullScale ({ type:'height' })
+      }else {
+        this.crop.scale = this.fullScale ({ type:'width' })
+      }
     },
 
     switchFull () {
@@ -115,8 +143,9 @@ export default {
     validateMargin () {
       const currentImg = this.selectList[this.selectIndex]
       const { x, y, scale } = currentImg.crop
-      const maxWidth = currentImg.image.width * scale
-      const maxHeight = currentImg.image.height * scale
+      const { clientWidth, clientHeight } = this.$refs.crop
+      const maxX = currentImg.image.width * scale - clientWidth
+      const maxY = currentImg.image.height * scale - clientHeight
       //首先不能小于(0,0)点,不能大于图片宽高
       if (x < 0) {
         currentImg.crop.x = 0
@@ -124,11 +153,11 @@ export default {
       if (y < 0) {
         currentImg.crop.y = 0
       }
-      if (x > maxWidth) {
-        currentImg.crop.x = maxWidth
+      if (x > maxX) {
+        currentImg.crop.x = maxX
       }
-      if (y > maxHeight) {
-        currentImg.crop.y = maxHeight
+      if (y > maxY) {
+        currentImg.crop.y = maxY
       }
     }
   },
