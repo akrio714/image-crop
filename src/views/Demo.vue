@@ -13,6 +13,7 @@
            :style="cropSize">
         <img class="center-img"
              :style="imgStyle"
+             ref="img"
              :src="currentImg.url"
              :key="currentImg.url" />
       </div>
@@ -183,6 +184,7 @@ export default {
       document.onmouseup = () => {
         document.onmousemove = null
         document.onmouseup = null
+        console.log('eeee',this.$refs.img.offsetLeft)
         // 最后验证图片是否超出边界，如果超出则进行修正
         this.validateMargin()
       }

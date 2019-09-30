@@ -1,16 +1,20 @@
 <template>
-    <el-dialog title="收货地址"
-               :visible.sync="dialogTableVisible">
-      <div>1111</div>
-    </el-dialog>
+  <el-dialog title="裁切"
+             :visible.sync="showModal">
+    <div></div>
+  </el-dialog>
 </template>
+<style lang="less" scoped>
+.crop-modal {
+}
+</style>
 <script>
 export default {
   name: 'CropModalComponent',
-  data(){
-      return {
-          dialogTableVisible:true
-      }
+  data () {
+    return {
+      showModal: true
+    }
   }
 }
 </script>
