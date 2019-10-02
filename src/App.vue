@@ -1,6 +1,7 @@
 <template>
   <div id="app">
     <router-view />
+    <div>备案号:津ICP备18009905号</div>
   </div>
 </template>
 
