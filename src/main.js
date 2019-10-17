@@ -2,7 +2,7 @@ import Vue from 'vue'
 import App from './App.vue'
 import router from './router'
 import VueLazyload from 'vue-lazyload'
-import "normalize.css";
+import "normalize.css"
 
 Vue.config.productionTip = false
 // 图片懒加载

@@ -7,32 +7,36 @@
     </div>
     <div class="crop-container"
          ref="elCrop">
-      <div v-if="currentImg"
-           class="crop-img-container"
+      <div class="crop-img-container"
            ref="crop"
            :style="cropSize">
         <img class="center-img"
              :style="imgStyle"
              ref="img"
-             :src="currentImg.url"
-             :key="currentImg.url" />
+             :src="currentImg?currentImg.url:''"
+             :key="currentImg?currentImg.url:''" />
       </div>
-      <div class="shrink-icon"></div>
+      <!-- <div class="shrink-icon"></div>
       <div class="enlargement-icon"></div>
-      <div class="rotate-icon"></div>
-      <div class="cut-icon"></div>
+      <div class="rotate-icon"></div> -->
+      <div class="cut-icon"
+           @click.stop="switchFull"></div>
       <!--锁定样式超出区域显示黑色-->
       <div class="crop-line-container">
       </div>
     </div>
     <div class="bottom-image-list">
       <div class="image-item"
-           @click="imgClick(img)"
-           v-for="img in imageList"
-           :key="img">
+           @click="imgClick(img.url)"
+           v-for="img in bottomImageList"
+           :key="img.url">
         <div class="img"
-             v-lazy:background-image="img"
-             :key="img"></div>
+             v-lazy:background-image="img.url"
+             :key="img.url"></div>
+        <div class="select-mask"
+             v-show="img.current"></div>
+        <div class="select-icon"
+             v-if="img.index">{{img.index}}</div>
       </div>
     </div>
   </div>
@@ -52,6 +56,7 @@ import img10 from '@/assets/10.jpg'
 import img11 from '@/assets/11.jpg'
 import img12 from '@/assets/12.jpg'
 import { imageLoad, imgFilter } from '../utils/media'
+import Hammer from 'hammerjs'
 export default {
   name: 'DemoPage',
   data () {
@@ -62,7 +67,21 @@ export default {
     }
   },
   computed: {
+    bottomImageList () {
+      return this.imageList.map(img => {
+        const index = this.selectList.findIndex(i => i.url === img)
+        const current = index === this.selectIndex
+        return {
+          url: img,
+          index: index === -1 ? '' : index + 1,
+          current
+        }
+      })
+    },
     imgStyle () {
+      if (!this.currentImg) {
+        return {}
+      }
       const crop = this.currentImg.crop
       return {
         transform: `translate(${-crop.x}px,${-crop.y}px) scale(${crop.scale})`
@@ -74,7 +93,7 @@ export default {
     cropSize () {
       return {
         width: `${100}vw`,
-        height: `${70}vw`
+        height: `${100}vw`
       }
     }
   },
@@ -82,7 +101,7 @@ export default {
     /**计算图片铺满缩放 */
     fullScale ({ type }) {
       const { width: imgWidth, height: imgHeight } = this.currentImg.image
-      const { clientWidth: cropWidth, clientHeight: cropHeight } = this.$refs.crop.clientWidth
+      const { clientWidth: cropWidth, clientHeight: cropHeight } = this.$refs.crop
       let scale = 1
       if (type === 'width') {
         // 计算宽度100%所需缩放
@@ -94,36 +113,76 @@ export default {
       return scale
     },
     async imgClick (img) {
-      // 更改当前选中项
-      this.selectIndex = this.imageList.findIndex(i => i === img)
-      const image = await imageLoad({ src: img })
-      // 初始化选中项数据
-      const item = {
-        url: img,
-        image,
-        crop: {
-          x: 0,
-          y: 0,
-          scale: 0.5,
-          roate: 0
+      // 查看当前是否为选中项，如果选中则进行取消
+      const selectIndex = this.selectList.findIndex(i => i.url === img)
+      if (selectIndex !== -1) {
+        // 是否选中的是当前项
+        const selectCurrent = this.selectList[this.selectIndex].url === img
+        // 如果选中的是唯一的已选项则没有任何效果
+        if (this.selectList.length === 1) {
+          return
+        } else {
+          if (selectCurrent) {
+            this.selectList.splice(selectIndex, 1)
+            this.selectIndex = this.selectList.length - 1
+          } else {
+            // 如果已经选择多张图片
+            this.selectIndex = selectIndex
+          }
         }
-      }
-      this.selectList.push(item)
-            /**
-       * 计算图片缩放比例以及坐标
-       * 1.获取裁切框比例
-       * 2.计算横纵坐标
-       * */
-      const { clientWidth: cropWidth, clientHeight: cropHeight } = this.$refs.crop.clientWidth
-      // 如果裁切宽度大于高度 则按高度取值
-      if (cropWidth > cropHeight) {
-        this.crop.scale = this.fullScale ({ type:'height' })
-      }else {
-        this.crop.scale = this.fullScale ({ type:'width' })
+      } else {
+        // 如果点的是新的则直接更改当前选中项
+        this.selectIndex = this.selectList.length
+        const image = await imageLoad({ src: img })
+        // 初始化选中项数据
+        const item = {
+          url: img,
+          image,
+          crop: {
+            x: 0,
+            y: 0,
+            scale: 0.5,
+            roate: 0
+          }
+        }
+        this.selectList.push(item)
+        /**
+         * 计算图片缩放比例以及坐标
+         * 1.获取裁切框比例
+         * 2.计算横纵坐标
+         * */
+        const { clientWidth: cropWidth, clientHeight: cropHeight } = this.$refs.crop
+        // 如果裁切宽度大于高度 则按高度取值
+        if (cropWidth > cropHeight) {
+          item.crop.scale = this.fullScale({ type: 'width' })
+        } else {
+          item.crop.scale = this.fullScale({ type: 'height' })
+        }
       }
     },
 
     switchFull () {
+      let fullScale = 1
+      const { clientWidth: cropWidth, clientHeight: cropHeight } = this.$refs.crop
+      // 如果裁切宽度大于高度 则按高度取值
+      if (cropWidth > cropHeight) {
+        fullScale = this.fullScale({ type: 'width' })
+      } else {
+        fullScale = this.fullScale({ type: 'height' })
+      }
+      if (fullScale === this.currentImg.crop.scale) {
+        if (cropWidth > cropHeight) {
+          this.currentImg.crop.scale = this.fullScale({ type: 'height' })
+        } else {
+          this.currentImg.crop.scale = this.fullScale({ type: 'width' })
+        }
+      } else {
+        if (cropWidth > cropHeight) {
+          this.currentImg.crop.scale = this.fullScale({ type: 'width' })
+        } else {
+          this.currentImg.crop.scale = this.fullScale({ type: 'height' })
+        }
+      }
     },
     /**
        * 旋转
@@ -167,28 +226,28 @@ export default {
     await this.imgClick(this.imageList[0])
   },
   mounted () {
-    this.$refs.elCrop.onmousedown = e => {
-      let x = e.pageX
-      let y = e.pageY
-      // 监听坐标变化
-      e.preventDefault()
-      // 同时监听鼠标移动
-      document.onmousemove = e => {
-        // 计算移动后坐标
-        let relativeX = e.pageX - x
-        let relativeY = e.pageY - y
-        x = e.pageX
-        y = e.pageY
-        this.moving({ relativeX, relativeY })
-      }
-      document.onmouseup = () => {
-        document.onmousemove = null
-        document.onmouseup = null
-        console.log('eeee',this.$refs.img.offsetLeft)
-        // 最后验证图片是否超出边界，如果超出则进行修正
-        this.validateMargin()
-      }
-    }
+    // Create an instance of Hammer with the reference.
+    var hammer = new Hammer(this.$refs.elCrop);
+    let x = 0
+    let y = 0
+    hammer.on('panstart', (e) => {
+      x = e.center.x
+      y = e.center.y
+      console.log('panstart')
+    });
+    hammer.on('pan', (e) => {
+      // 计算移动后坐标
+      let relativeX = e.center.x - x
+      let relativeY = e.center.y - y
+      x = e.center.x
+      y = e.center.y
+      console.log('panmove', e.center)
+      this.moving({ relativeX, relativeY })
+    });
+    hammer.on('panend', () => {
+      this.validateMargin()
+      console.log('panend')
+    });
   }
 }
 </script>
@@ -307,8 +366,34 @@ export default {
       padding: 1px;
       box-sizing: border-box;
       cursor: pointer;
+      position: relative;
+      .select-icon {
+        width: 17px;
+        height: 17px;
+        background: rgba(221, 8, 8, 0.9);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        bottom: 5px;
+        right: 5px;
+        color: white;
+        font-size: 13px;
+        line-height: 17px;
+        z-index: 2;
+      }
       &:hover {
         opacity: 0.7;
+      }
+      .select-mask {
+        position: absolute;
+        left: 0;
+        top: 0;
+        height: 100%;
+        width: 100%;
+        background: rgba(255, 255, 255, 0.6);
+        z-index: 1;
       }
       .img {
         height: 100%;
