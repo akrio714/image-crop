@@ -224,6 +224,10 @@ export default {
   mounted () {
     // Create an instance of Hammer with the reference.
     var hammer = new Hammer(this.$refs.elCrop);
+    // 开启纵向手势
+    hammer.get('pan').set({ direction: Hammer.DIRECTION_ALL });
+    // 开启捏放手势
+    hammer.get('pinch').set({ enable: true });
     let x = 0
     let y = 0
     hammer.on('panstart', (e) => {
@@ -242,6 +246,16 @@ export default {
     hammer.on('panend', () => {
       this.validateMargin()
     });
+    let scale = 1
+    hammer.on('pinchstart',()=>{
+      scale = this.currentImg.crop.scale
+    })
+    hammer.on('pinchmove', (e) => {
+       this.currentImg.crop.scale = scale * e.scale
+    });
+    hammer.on('doubletap', ()=> {
+        this.switchFull()
+    })
   }
 }
 </script>
