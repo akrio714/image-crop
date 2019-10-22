@@ -11,6 +11,7 @@ export default {
   mounted () {
     // Create an instance of Hammer with the reference.
     var hammer = new Hammer(document.getElementById("test"));
+    hammer.set({'touch-action':'none'});
     hammer.on('panstart', (e) => {
         console.log('panstart')
     });
