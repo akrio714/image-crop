@@ -18,7 +18,8 @@
       <div class="cut-icon"
            @click.stop="switchFull"></div>
       <!--锁定样式超出区域显示黑色-->
-      <div class="crop-line-container" ref="elCrop">
+      <div class="crop-line-container"
+           ref="elCrop">
       </div>
     </div>
     <div class="bottom-image-list">
@@ -51,13 +52,21 @@ import img9 from '@/assets/9.jpg'
 import img10 from '@/assets/10.jpg'
 import img11 from '@/assets/11.jpg'
 import img12 from '@/assets/12.jpg'
+import img13 from '@/assets/13.jpg'
+import img14 from '@/assets/14.jpg'
+import img15 from '@/assets/15.jpg'
+import img16 from '@/assets/16.jpg'
+import img17 from '@/assets/17.jpg'
+import img18 from '@/assets/18.jpg'
+import img19 from '@/assets/19.jpg'
 import { imageLoad, imgFilter } from '../utils/media'
 import Hammer from 'hammerjs'
 export default {
   name: 'DemoPage',
   data () {
     return {
-      imageList: [img1, img2, img3, img4, img5, img6, img7, img8, img9, img10, img11, img12],
+      type: 'single',
+      imageList: [img6, img1, img2, img3, img4, img5, img7, img8, img9, img10, img11, img12, img13, img14, img15, img16, img17, img18, img19],
       selectIndex: 0,
       selectList: []
     }
@@ -87,9 +96,24 @@ export default {
       return this.selectList[this.selectIndex]
     },
     cropSize () {
-      return {
-        width: `${100}vw`,
-        height: `${100}vw`
+      if (!this.currentImg) {
+        return {}
+      }
+      if (this.type === 'single') {
+        const { width: imgWidth, height: imgHeight } = this.currentImg.image
+        const scale = this.currentImg.crop.scale
+        return {
+          width: `${imgWidth * scale}px`,
+          height: `${imgHeight * scale}px`
+        }
+      } else if (this.type === 'mul') {
+        return {
+          width: `${100}vw`,
+          height: `${100}vw`
+        }
+      } else {
+        console.error('既不是单选又不是多选')
+        return {}
       }
     }
   },
@@ -97,7 +121,25 @@ export default {
     /**计算图片铺满缩放 */
     fullScale ({ type }) {
       const { width: imgWidth, height: imgHeight } = this.currentImg.image
-      const { clientWidth: cropWidth, clientHeight: cropHeight } = this.$refs.crop
+      let cropWidth = 0
+      let cropHeight = 0
+      if (this.type === 'single') {
+        // 获取裁切框的大小，宽高都是100%宽度
+        const pageSize = document.body.clientWidth
+        // 计算图片真实宽高比
+        const imgWHRatio = imgWidth / imgHeight
+        if (type === 'width') {
+          // 图片宽大于高则说明宽度100% 高度自适应
+          cropWidth = pageSize
+          cropHeight = cropWidth / imgWHRatio
+        } else {
+          cropHeight = pageSize
+          cropWidth = cropHeight * imgWHRatio
+        }
+      } else if (this.type === 'mul') {
+        cropWidth = this.$refs.crop.clientWidth
+        cropHeight = this.$refs.crop.clientHeight
+      }
       let scale = 1
       if (type === 'width') {
         // 计算宽度100%所需缩放
@@ -147,7 +189,7 @@ export default {
          * 1.获取裁切框比例
          * 2.计算横纵坐标
          * */
-        const { clientWidth: cropWidth, clientHeight: cropHeight } = this.$refs.crop
+        const { width: cropWidth, height: cropHeight } = item.image
         // 如果裁切宽度大于高度 则按高度取值
         if (cropWidth > cropHeight) {
           item.crop.scale = this.fullScale({ type: 'width' })
@@ -156,11 +198,14 @@ export default {
         }
       }
     },
-
+    /**
+     * 切换展示比例，要不宽度撑满，要不高度撑满
+     */
     switchFull () {
+      // 计算默认的缩放
       let fullScale = 1
       const { clientWidth: cropWidth, clientHeight: cropHeight } = this.$refs.crop
-      // 如果裁切宽度大于高度 则按高度取值
+
       if (cropWidth > cropHeight) {
         fullScale = this.fullScale({ type: 'width' })
       } else {
@@ -179,6 +224,7 @@ export default {
           this.currentImg.crop.scale = this.fullScale({ type: 'height' })
         }
       }
+      this.validateMargin()
     },
     /**
        * 旋转
@@ -197,24 +243,26 @@ export default {
      * 计算边缘回弹
      */
     validateMargin () {
-      const currentImg = this.selectList[this.selectIndex]
-      const { x, y, scale } = currentImg.crop
-      const { clientWidth, clientHeight } = this.$refs.crop
-      const maxX = currentImg.image.width * scale - clientWidth
-      const maxY = currentImg.image.height * scale - clientHeight
-      //首先不能小于(0,0)点,不能大于图片宽高
-      if (x < 0) {
-        currentImg.crop.x = 0
-      }
-      if (y < 0) {
-        currentImg.crop.y = 0
-      }
-      if (x > maxX) {
-        currentImg.crop.x = maxX
-      }
-      if (y > maxY) {
-        currentImg.crop.y = maxY
-      }
+      this.$nextTick(() => {
+        const currentImg = this.selectList[this.selectIndex]
+        const { x, y, scale } = currentImg.crop
+        const { clientWidth, clientHeight } = this.$refs.crop
+        const maxX = currentImg.image.width * scale - clientWidth
+        const maxY = currentImg.image.height * scale - clientHeight
+        //首先不能小于(0,0)点,不能大于图片宽高
+        if (x <= 0) {
+          currentImg.crop.x = 0
+        }
+        if (y <= 0) {
+          currentImg.crop.y = 0
+        }
+        if (x > maxX) {
+          currentImg.crop.x = maxX
+        }
+        if (y > maxY) {
+          currentImg.crop.y = maxY
+        }
+      })
     }
   },
   async created () {
@@ -230,31 +278,32 @@ export default {
     hammer.get('pinch').set({ enable: true });
     let x = 0
     let y = 0
+    let scale = 1
     hammer.on('panstart', (e) => {
       x = e.center.x
       y = e.center.y
     });
     hammer.on('panmove', (e) => {
-      console.log('pan move',e.center)
+      console.log('pan move', e.center)
       // 计算移动后坐标
       let relativeX = e.center.x - x
       let relativeY = e.center.y - y
       x = e.center.x
       y = e.center.y
       this.moving({ relativeX, relativeY })
+      this.validateMargin ()
     });
     hammer.on('panend', () => {
       this.validateMargin()
     });
-    let scale = 1
-    hammer.on('pinchstart',()=>{
+    hammer.on('pinchstart', () => {
       scale = this.currentImg.crop.scale
     })
     hammer.on('pinchmove', (e) => {
-       this.currentImg.crop.scale = scale * e.scale
+      this.currentImg.crop.scale = scale * e.scale
     });
-    hammer.on('doubletap', ()=> {
-        this.switchFull()
+    hammer.on('doubletap', () => {
+      this.switchFull()
     })
   }
 }
@@ -301,11 +350,11 @@ export default {
     justify-content: center;
     .crop-img-container {
       overflow: hidden;
+      max-width: 100vw;
+      max-height: 100vw;
       .center-img {
-        transform: translate(1px, 1px) scale(0.6);
         transform-origin: 0 0;
-        left: 0;
-        top: 0;
+        position: relative;
       }
     }
     .shrink-icon,
