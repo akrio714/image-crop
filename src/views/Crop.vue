@@ -1,9 +1,11 @@
 <template>
   <div class="crop-page">
     <div class="top-header">
-      <div class="left-icon">关闭</div>
-      <div class="title">裁切</div>
-      <div class="next-btn">继续</div>
+      <div class="left-icon"
+           @click="toPrevPage">{{prevBtnText}}</div>
+      <div class="title">{{title}}</div>
+      <div class="next-btn"
+           @click="toNextPage">{{nextBtnText}}</div>
     </div>
     <div class="crop-container">
       <div class="crop-img-container"
@@ -12,6 +14,7 @@
         <img class="center-img"
              :style="imgStyle"
              ref="img"
+             :class="currentImg?currentImg.filter:''"
              :src="currentImg?currentImg.url:''"
              :key="currentImg?currentImg.url:''" />
       </div>
@@ -22,7 +25,8 @@
            ref="elCrop">
       </div>
     </div>
-    <div class="bottom-image-list">
+    <div class="bottom-image-list"
+         v-if="this.type === 'crop'">
       <div class="image-item"
            @click="imgClick(img.url)"
            v-for="img in bottomImageList"
@@ -34,6 +38,16 @@
              v-show="img.current"></div>
         <div class="select-icon"
              v-if="img.index">{{img.index}}</div>
+      </div>
+    </div>
+    <div class="filter-list-container"
+         v-if="this.type === 'filter'">
+      <div v-for="filterType in filterTypes"
+           :key="filterType.name">
+        <div>
+          <crop-item class="filter-item" ></crop-item>
+          <div>{{filterType.name}}</div>
+        </div>
       </div>
     </div>
   </div>
@@ -61,17 +75,62 @@ import img18 from '@/assets/18.jpg'
 import img19 from '@/assets/19.jpg'
 import { imageLoad, imgFilter } from '../utils/media'
 import Hammer from 'hammerjs'
+import CropItem from '../components/CropItem'
 export default {
   name: 'DemoPage',
+  components: { CropItem },
   data () {
     return {
-      type: 'single',
+      type: 'crop',
+      selectType: 'single',
       imageList: [img6, img1, img2, img3, img4, img5, img7, img8, img9, img10, img11, img12, img13, img14, img15, img16, img17, img18, img19],
       selectIndex: 0,
-      selectList: []
+      selectList: [],
+      filterTypes: [ // 滤镜类型
+        { name: 'normal', type: 'normal' },
+        { name: 'clarendon', type: 'clarendon' },
+        { name: 'lark', type: 'lark' },
+        { name: 'gingham', type: 'gingham' },
+        { name: 'valencia', type: 'valencia' },
+        { name: 'xpro2', type: 'xpro2' },
+        { name: 'lofi', type: 'lofi' }
+      ],
     }
   },
   computed: {
+    /**
+     * 左侧按钮文案
+     */
+    prevBtnText () {
+      if (this.type === 'crop') {
+        return '关闭'
+      } else if (this.type === 'filter') {
+        return '后退'
+      }
+      return '未知'
+    },
+    /**
+     * 右侧按钮文案
+     */
+    nextBtnText () {
+      if (this.type === 'crop') {
+        return '继续'
+      } else if (this.type === 'filter') {
+        return '完成'
+      }
+      return '未知'
+    },
+    /**
+     * 标题
+     */
+    title () {
+      if (this.type === 'crop') {
+        return '裁切'
+      } else if (this.type === 'filter') {
+        return '滤镜'
+      }
+      return '未知'
+    },
     bottomImageList () {
       return this.imageList.map(img => {
         const index = this.selectList.findIndex(i => i.url === img)
@@ -99,14 +158,14 @@ export default {
       if (!this.currentImg) {
         return {}
       }
-      if (this.type === 'single') {
+      if (this.selectType === 'single') {
         const { width: imgWidth, height: imgHeight } = this.currentImg.image
         const scale = this.currentImg.crop.scale
         return {
           width: `${imgWidth * scale}px`,
           height: `${imgHeight * scale}px`
         }
-      } else if (this.type === 'mul') {
+      } else if (this.selectType === 'mul') {
         return {
           width: `${100}vw`,
           height: `${100}vw`
@@ -118,12 +177,28 @@ export default {
     }
   },
   methods: {
+    /**
+     * 右侧按钮点击事件
+     */
+    toNextPage () {
+      if (this.type === 'crop') {
+        this.type = 'filter'
+      }
+    },
+    /**
+     * 左侧按钮点击事件
+     */
+    toPrevPage () {
+      if (this.type === 'filter') {
+        this.type = 'crop'
+      }
+    },
     /**计算图片铺满缩放 */
     fullScale ({ type }) {
       const { width: imgWidth, height: imgHeight } = this.currentImg.image
       let cropWidth = 0
       let cropHeight = 0
-      if (this.type === 'single') {
+      if (this.selectType === 'single') {
         // 获取裁切框的大小，宽高都是100%宽度
         const pageSize = document.body.clientWidth
         // 计算图片真实宽高比
@@ -136,7 +211,7 @@ export default {
           cropHeight = pageSize
           cropWidth = cropHeight * imgWHRatio
         }
-      } else if (this.type === 'mul') {
+      } else if (this.selectType === 'mul') {
         cropWidth = this.$refs.crop.clientWidth
         cropHeight = this.$refs.crop.clientHeight
       }
@@ -176,6 +251,7 @@ export default {
         const item = {
           url: img,
           image,
+          filter: 'normal',
           crop: {
             x: 0,
             y: 0,
@@ -291,7 +367,7 @@ export default {
       x = e.center.x
       y = e.center.y
       this.moving({ relativeX, relativeY })
-      this.validateMargin ()
+      this.validateMargin()
     });
     hammer.on('panend', () => {
       this.validateMargin()
@@ -457,6 +533,23 @@ export default {
         background: gray;
         background-size: cover;
       }
+    }
+  }
+  // 滤镜样式
+  .filter-list-container {
+    flex: 1;
+    overflow-x: scroll;
+    overflow-y: hidden;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    width: 100vw;
+    .filter-item {
+      height: 100px;
+      width: 100px;
+      background: red;
+      margin: 5px;
+      white-space: nowrap;
     }
   }
 }

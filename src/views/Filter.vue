@@ -1,8 +1,8 @@
 <template>
   <div class="filter-page">
     <div class="top-header">
-      <div class="left-icon">关闭</div>
-      <div class="title">裁切</div>
+      <div class="left-icon">后退</div>
+      <div class="title">滤镜</div>
       <div class="next-btn">继续</div>
     </div>
     <div class="crop-container">
