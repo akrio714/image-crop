@@ -11,7 +11,7 @@
       <div class="crop-img-container"
            ref="crop"
            :style="cropSize">
-        <img class="center-img"
+        <img class="center-img cube"
              :style="imgStyle"
              ref="img"
              :class="currentImg?currentImg.filter:''"
@@ -43,9 +43,13 @@
     <div class="filter-list-container"
          v-if="this.type === 'filter'">
       <div v-for="filterType in filterTypes"
-           :key="filterType.name">
+           :key="filterType.name"
+           @click="switchFilter(filterType)">
         <div>
-          <crop-item class="filter-item" ></crop-item>
+          <crop-item class="filter-item"
+                     :filter="filterType.name"
+                     :class="{active:filterType.name === currentImg.filter}"
+                     :currentImg="currentImg"></crop-item>
           <div>{{filterType.name}}</div>
         </div>
       </div>
@@ -81,7 +85,7 @@ export default {
   components: { CropItem },
   data () {
     return {
-      type: 'crop',
+      type: 'crop', // crop filter
       selectType: 'single',
       imageList: [img6, img1, img2, img3, img4, img5, img7, img8, img9, img10, img11, img12, img13, img14, img15, img16, img17, img18, img19],
       selectIndex: 0,
@@ -177,6 +181,20 @@ export default {
     }
   },
   methods: {
+    /**
+     * 导出当前图片
+     */
+    exportImg () {
+      // 获取当前裁切框的大小和其中图片大小
+      const {clientWidth:cropWidth,clientHeight:cropHeight} = this.$refs.crop
+      
+    },
+    /**
+     * 切换当前图片滤镜
+     */
+    switchFilter (filterType) {
+      this.currentImg.filter = filterType.type
+    },
     /**
      * 右侧按钮点击事件
      */
@@ -360,7 +378,6 @@ export default {
       y = e.center.y
     });
     hammer.on('panmove', (e) => {
-      console.log('pan move', e.center)
       // 计算移动后坐标
       let relativeX = e.center.x - x
       let relativeY = e.center.y - y
@@ -420,7 +437,7 @@ export default {
     height: 100vw;
     background: gray;
     position: relative;
-    overflow: scroll;
+    overflow: hidden;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -489,6 +506,7 @@ export default {
     flex: 1;
     background: #dfdfdf;
     overflow: scroll;
+    -webkit-overflow-scrolling: touch;
     display: flex;
     flex-flow: wrap;
     align-content: flex-start;
@@ -539,6 +557,7 @@ export default {
   .filter-list-container {
     flex: 1;
     overflow-x: scroll;
+    -webkit-overflow-scrolling: touch;
     overflow-y: hidden;
     display: flex;
     align-items: center;
@@ -547,9 +566,14 @@ export default {
     .filter-item {
       height: 100px;
       width: 100px;
-      background: red;
       margin: 5px;
-      white-space: nowrap;
+      cursor: pointer;
+      &:hover {
+        opacity: 0.7;
+      }
+      &.active {
+        opacity: 0.7;
+      }
     }
   }
 }
