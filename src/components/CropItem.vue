@@ -27,6 +27,13 @@ export default {
     filter: {
       type: String,
       default: 'normal'
+    },
+    /**
+     * 外层裁切框大小，因为样式相同，所以直接取外层加缩放即可
+     */
+    imgCropSize: {
+      type: Object,
+      required: true
     }
   },
   data () {
@@ -45,11 +52,9 @@ export default {
       }
     },
     cropSize () {
-      const { width: imgWidth, height: imgHeight } = this.currentImg.image
-      const scale = this.currentImg.crop.scale
       return {
-        width: `${imgWidth * scale* this.scale}px`,
-        height: `${imgHeight * scale* this.scale}px`
+        width: `${this.imgCropSize.w * this.scale}px`,
+        height: `${this.imgCropSize.h * this.scale}px`
       }
     }
   },
@@ -70,6 +75,7 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
+  height: 100%;
   .thumbnail-crop-img-container {
     overflow: hidden;
     max-width: 100%;

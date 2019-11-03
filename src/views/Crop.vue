@@ -7,7 +7,11 @@
       <div class="next-btn"
            @click="toNextPage">{{nextBtnText}}</div>
     </div>
-    <div class="crop-container">
+    <img style="position:fixed;top:0;left:0;width:100px;z-index:999"
+         :src="src"
+         @click="src = ''" />
+    <div class="crop-container"
+         v-show="type === 'crop'">
       <div class="crop-img-container"
            ref="crop"
            :style="cropSize">
@@ -18,15 +22,38 @@
              :src="currentImg?currentImg.url:''"
              :key="currentImg?currentImg.url:''" />
       </div>
+      <div class="shrink-icon"
+           @click.stop="shrinkClick(true)"></div>
+      <div class="enlargement-icon"
+           @click.stop="shrinkClick(false)"></div>
       <div class="cut-icon"
+           v-show="selectType === 'single'"
            @click.stop="switchFull"></div>
+      <div class="mul-icon"
+           @click.stop="switchSelectType"></div>
       <!--锁定样式超出区域显示黑色-->
       <div class="crop-line-container"
            ref="elCrop">
       </div>
     </div>
+    <swiper v-if="type === 'filter'"
+            :options="swiperOption"
+            class="crop-container"
+            ref="filterSwiper"
+            @someSwiperEvent="filterImgSwitch">
+      <!-- slides -->
+      <swiper-slide v-for="image in selectList"
+                    :key="image.url">
+        <crop-item class="filter-item"
+                   :filter="image.filter"
+                   :imgCropSize="cropSize"
+                   :currentImg="image"></crop-item>
+      </swiper-slide>
+      <div class="swiper-pagination"
+           slot="pagination"></div>
+    </swiper>
     <div class="bottom-image-list"
-         v-if="this.type === 'crop'">
+         v-show="this.type === 'crop'">
       <div class="image-item"
            @click="imgClick(img.url)"
            v-for="img in bottomImageList"
@@ -48,8 +75,9 @@
         <div>
           <crop-item class="filter-item"
                      :filter="filterType.name"
-                     :class="{active:filterType.name === currentImg.filter}"
-                     :currentImg="currentImg"></crop-item>
+                     :imgCropSize="cropSize"
+                     :class="{active:filterType.name === selectList[filterIndex].filter}"
+                     :currentImg="selectList[filterIndex]"></crop-item>
           <div>{{filterType.name}}</div>
         </div>
       </div>
@@ -81,15 +109,23 @@ import { imageLoad, imgFilter } from '../utils/media'
 import Hammer from 'hammerjs'
 import CropItem from '../components/CropItem'
 export default {
-  name: 'DemoPage',
+  name: 'CropPage',
   components: { CropItem },
   data () {
     return {
-      type: 'crop', // crop filter
-      selectType: 'single',
-      imageList: [img6, img1, img2, img3, img4, img5, img7, img8, img9, img10, img11, img12, img13, img14, img15, img16, img17, img18, img19],
-      selectIndex: 0,
-      selectList: [],
+      src: '',
+      swiperOption: { // swiper配置文件
+        pagination: {
+          el: '.swiper-pagination',
+          dynamicBullets: true
+        }
+      },
+      filterIndex: 0, // 滤镜模式选中的图片索引
+      type: 'crop', // 裁切模式:crop 滤镜模式:filter
+      selectType: 'single', // 单选模式:single 多选模式: mul 
+      imageList: [img1, img6, img2, img3, img4, img5, img7, img8, img9, img10, img11, img12, img13, img14, img15, img16, img17, img18, img19], // 可选图片列表
+      selectIndex: 0, // 当前裁切模式选中的图片
+      selectList: [], // 已经选中的图片列表
       filterTypes: [ // 滤镜类型
         { name: 'normal', type: 'normal' },
         { name: 'clarendon', type: 'clarendon' },
@@ -135,17 +171,31 @@ export default {
       }
       return '未知'
     },
+    /**
+     * 可选择图片列表
+     */
     bottomImageList () {
       return this.imageList.map(img => {
-        const index = this.selectList.findIndex(i => i.url === img)
-        const current = index === this.selectIndex
+        const selectIndex = this.selectList.findIndex(i => i.url === img)
+        let index = selectIndex === -1 ? '' : selectIndex + 1
+        let current = false
+        if (this.currentImg) {
+          current = this.currentImg.url === img
+        }
+        // 如果图片为单选模式则index = 0 不显示选中序号
+        if (this.selectType === 'single') {
+          index = ''
+        }
         return {
           url: img,
-          index: index === -1 ? '' : index + 1,
+          index,
           current
         }
       })
     },
+    /**
+     * 计算当前图片的translate样式
+     */
     imgStyle () {
       if (!this.currentImg) {
         return {}
@@ -155,52 +205,153 @@ export default {
         transform: `translate(${-crop.x}px,${-crop.y}px) scale(${crop.scale})`
       }
     },
+    /**
+     * 计算当前选中的图片
+     */
     currentImg () {
       return this.selectList[this.selectIndex]
     },
+    /**
+     * 计算裁切框大小
+     */
     cropSize () {
       if (!this.currentImg) {
         return {}
       }
-      if (this.selectType === 'single') {
-        const { width: imgWidth, height: imgHeight } = this.currentImg.image
-        const scale = this.currentImg.crop.scale
-        return {
-          width: `${imgWidth * scale}px`,
-          height: `${imgHeight * scale}px`
-        }
-      } else if (this.selectType === 'mul') {
-        return {
-          width: `${100}vw`,
-          height: `${100}vw`
-        }
-      } else {
-        console.error('既不是单选又不是多选')
-        return {}
+      let cropImg = this.currentImg.image
+      const scale = this.currentImg.crop.scale
+      let imgWidth = cropImg.width * scale
+      let imgHeight = cropImg.height * scale
+      if (this.selectType === 'mul') {
+        // 多选则锁死裁切框
+        imgWidth = this.lockSize.width
+        imgHeight = this.lockSize.height
+      }
+      return {
+        width: `${imgWidth}px`,
+        height: `${imgHeight}px`,
+        w: imgWidth,
+        h: imgHeight
       }
     }
   },
   methods: {
     /**
+     * 切换选中方式 single:单选 mul:多选
+     */
+    switchSelectType () {
+      if (this.selectType === 'single') {
+        this.selectType = 'mul'
+        // 单选切换到多选直接锁定单选的裁切比例
+        this.lockSize = {
+          width: this.$refs.crop.clientWidth,
+          height: this.$refs.crop.clientHeight
+        }
+      } else {
+        // 如果从多图切换回单图则只选择第一项
+        this.selectType = 'single'
+        this.selectList.splice(1, this.selectList.length - 1)
+        this.selectIndex = 0
+      }
+    },
+    /**
      * 导出当前图片
      */
     exportImg () {
       // 获取当前裁切框的大小和其中图片大小
-      const {clientWidth:cropWidth,clientHeight:cropHeight} = this.$refs.crop
-      
+      let { clientWidth: cropWidth, clientHeight: cropHeight } = this.$refs.crop
+      this.selectList.forEach(model => {
+        const canvas = document.createElement('canvas')
+        const ctx = canvas.getContext('2d')
+        const cropX = model.crop.x / model.crop.scale
+        const cropY = model.crop.y / model.crop.scale
+        cropWidth = cropWidth / model.crop.scale
+        cropHeight = cropHeight / model.crop.scale
+        canvas.width = cropWidth
+        canvas.height = cropHeight
+        ctx.drawImage(
+          model.image,
+          cropX,
+          cropY,
+          cropWidth,
+          cropHeight,
+          0,
+          0,
+          cropWidth,
+          cropHeight
+        )
+        // 添加滤镜
+        let currentCropImage = new Image()
+        currentCropImage.src = canvas.toDataURL('image/jpeg')
+        currentCropImage.onload = () => {
+          const resultImg = imgFilter({ image: currentCropImage, type: model.filter })
+          this.src = resultImg.toDataURL('image/jpeg')
+        }
+      });
+    },
+    /**
+     * 通过按钮触发缩放
+     * @param shrink 是否缩小
+     */
+    shrinkClick (shrink) {
+      let imgScale = 1
+      if (shrink) {
+        imgScale = this.currentImg.crop.scale * 0.9
+      } else {
+        imgScale = this.currentImg.crop.scale * 1.1
+      }
+      this.scale(imgScale)
+    },
+    scale (num) {
+      let scale = num
+      let minScale = 1
+      // 单选模式，判断图片长边至少达到100%宽度
+      if (this.selectType === 'single') {
+        if (this.currentImg.image.width >= this.currentImg.image.height) {
+          // 宽大于高，则说明宽度至少要达到100%宽度的缩放比
+          minScale = this.fullScale({ type: 'width' })
+        } else {
+          minScale = this.fullScale({ type: 'height' })
+        }
+      } else {
+        if (this.$refs.crop.clientWidth >= this.$refs.crop.clientHeight) {
+          // 宽大于高，则说明宽度至少要达到100%宽度的缩放比
+          minScale = this.fullScale({ type: 'width' })
+        } else {
+          minScale = this.fullScale({ type: 'height' })
+        }
+      }
+      const maxScale = minScale * 3
+      if (scale < minScale) {
+        scale = minScale
+      } else if (scale > maxScale) {
+        scale = maxScale
+      }
+      this.currentImg.crop.scale = scale
     },
     /**
      * 切换当前图片滤镜
      */
     switchFilter (filterType) {
-      this.currentImg.filter = filterType.type
+      this.selectList[this.filterIndex].filter = filterType.type
     },
     /**
      * 右侧按钮点击事件
      */
     toNextPage () {
       if (this.type === 'crop') {
+        // 重置滤镜索引
+        this.filterIndex = 0
         this.type = 'filter'
+        this.$nextTick(() => {
+          const swiper = this.$refs.filterSwiper.swiper
+          swiper.slideTo(this.filterIndex)
+          swiper.on('slideChange', () => {
+            this.filterIndex = swiper.realIndex
+          });
+        })
+      } else {
+        this.exportImg()
       }
     },
     /**
@@ -244,49 +395,78 @@ export default {
       return scale
     },
     async imgClick (img) {
+      const image = await imageLoad({ src: img })
+      // 初始化选中项数据
+      const item = {
+        url: img,
+        image,
+        filter: 'normal',
+        crop: {
+          x: 0,
+          y: 0,
+          scale: 0.5,
+          roate: 0
+        }
+      }
       // 查看当前是否为选中项，如果选中则进行取消
       const selectIndex = this.selectList.findIndex(i => i.url === img)
-      if (selectIndex !== -1) {
-        // 是否选中的是当前项
-        const selectCurrent = this.selectList[this.selectIndex].url === img
-        // 如果选中的是唯一的已选项则没有任何效果
-        if (this.selectList.length === 1) {
-          return
+      if (selectIndex === -1) {
+        // 如果点的是新的则直接更改当前选中项
+        if (this.selectType === 'single') {
+          this.selectList = [item]
         } else {
-          if (selectCurrent) {
-            this.selectList.splice(selectIndex, 1)
-            this.selectIndex = this.selectList.length - 1
-          } else {
-            // 如果已经选择多张图片
-            this.selectIndex = selectIndex
-          }
+          this.selectIndex = this.selectList.length
+          this.selectList.push(item)
         }
       } else {
-        // 如果点的是新的则直接更改当前选中项
-        this.selectIndex = this.selectList.length
-        const image = await imageLoad({ src: img })
-        // 初始化选中项数据
-        const item = {
-          url: img,
-          image,
-          filter: 'normal',
-          crop: {
-            x: 0,
-            y: 0,
-            scale: 0.5,
-            roate: 0
+        // 计算是否选中的是自身
+        const selectCurrent = this.selectList[this.selectIndex].url === img
+        if (this.selectType === 'single') {
+          // 单选模式点之前选项则不作处理，如果是新的则替换之前项
+          if (selectCurrent) {
+            return
+          } else {
+            this.selectList = [item]
+          }
+        } else {
+          // 如果选中的是唯一的已选项则没有任何效果
+          if (this.selectList.length === 1) {
+            return
+          } else {
+            // 选中当前则是取消
+            if (selectCurrent) {
+              this.selectList.splice(selectIndex, 1)
+              this.selectIndex = this.selectList.length - 1
+            } else {
+              // 如果已经选择多张图片
+              this.selectIndex = selectIndex
+            }
           }
         }
-        this.selectList.push(item)
-        /**
-         * 计算图片缩放比例以及坐标
-         * 1.获取裁切框比例
-         * 2.计算横纵坐标
-         * */
-        const { width: cropWidth, height: cropHeight } = item.image
+      }
+      /**
+       * 计算图片缩放比例以及坐标
+       * 1.获取裁切框比例
+       * 2.计算横纵坐标
+       * */
+      const { width: cropWidth, height: cropHeight } = item.image
+      if (this.selectType === 'single') {
         // 如果裁切宽度大于高度 则按高度取值
         if (cropWidth > cropHeight) {
           item.crop.scale = this.fullScale({ type: 'width' })
+        } else {
+          item.crop.scale = this.fullScale({ type: 'height' })
+        }
+      } else if (this.selectType === 'mul') {
+        if (this.$refs.crop.clientWidth > this.$refs.crop.clientHeight) {
+          item.crop.scale = this.fullScale({ type: 'width' })
+        } else if (this.$refs.crop.clientWidth === this.$refs.crop.clientHeight) {
+          // 如果为多选且裁切框比例为1 则判断图片宽度
+          if (cropWidth < cropHeight) {
+            item.crop.scale = this.fullScale({ type: 'width' })
+          } else {
+            item.crop.scale = this.fullScale({ type: 'height' })
+          }
         } else {
           item.crop.scale = this.fullScale({ type: 'height' })
         }
@@ -341,6 +521,7 @@ export default {
         const currentImg = this.selectList[this.selectIndex]
         const { x, y, scale } = currentImg.crop
         const { clientWidth, clientHeight } = this.$refs.crop
+        // 计算窄变
         const maxX = currentImg.image.width * scale - clientWidth
         const maxY = currentImg.image.height * scale - clientHeight
         //首先不能小于(0,0)点,不能大于图片宽高
@@ -365,19 +546,19 @@ export default {
   },
   mounted () {
     // Create an instance of Hammer with the reference.
-    var hammer = new Hammer(this.$refs.elCrop);
+    var cropHammer = new Hammer(this.$refs.elCrop);
     // 开启纵向手势
-    hammer.get('pan').set({ direction: Hammer.DIRECTION_ALL });
+    cropHammer.get('pan').set({ direction: Hammer.DIRECTION_ALL });
     // 开启捏放手势
-    hammer.get('pinch').set({ enable: true });
+    cropHammer.get('pinch').set({ enable: true });
     let x = 0
     let y = 0
     let scale = 1
-    hammer.on('panstart', (e) => {
+    cropHammer.on('panstart', (e) => {
       x = e.center.x
       y = e.center.y
     });
-    hammer.on('panmove', (e) => {
+    cropHammer.on('panmove', (e) => {
       // 计算移动后坐标
       let relativeX = e.center.x - x
       let relativeY = e.center.y - y
@@ -386,16 +567,16 @@ export default {
       this.moving({ relativeX, relativeY })
       this.validateMargin()
     });
-    hammer.on('panend', () => {
+    cropHammer.on('panend', () => {
       this.validateMargin()
     });
-    hammer.on('pinchstart', () => {
+    cropHammer.on('pinchstart', () => {
       scale = this.currentImg.crop.scale
     })
-    hammer.on('pinchmove', (e) => {
-      this.currentImg.crop.scale = scale * e.scale
+    cropHammer.on('pinchmove', (e) => {
+      this.scale(scale * e.scale)
     });
-    hammer.on('doubletap', () => {
+    cropHammer.on('doubletap', () => {
       this.switchFull()
     })
   }
@@ -453,7 +634,8 @@ export default {
     .shrink-icon,
     .enlargement-icon,
     .rotate-icon,
-    .cut-icon {
+    .cut-icon,
+    .mul-icon {
       width: 24px;
       height: 24px;
       background-size: contain;
@@ -486,6 +668,15 @@ export default {
       width: 35px;
       height: 35px;
       bottom: 20px;
+    }
+    // 单多选切换按钮
+    .mul-icon {
+      background-image: url("../assets/mul.png");
+      width: 35px;
+      height: 35px;
+      bottom: 20px;
+      right: 20px;
+      left: inherit;
     }
     // 裁切图片之上的遮罩
     .crop-line-container {
@@ -533,9 +724,6 @@ export default {
         line-height: 17px;
         z-index: 2;
       }
-      &:hover {
-        opacity: 0.7;
-      }
       .select-mask {
         position: absolute;
         left: 0;
@@ -566,13 +754,11 @@ export default {
     .filter-item {
       height: 100px;
       width: 100px;
-      margin: 5px;
+      margin: 2px;
       cursor: pointer;
-      &:hover {
-        opacity: 0.7;
-      }
+      border: 3px solid white;
       &.active {
-        opacity: 0.7;
+        border-color: red;
       }
     }
   }
