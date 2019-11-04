@@ -3,6 +3,6 @@ module.exports = {
     sourceMap: true
   },
   publicPath: process.env.NODE_ENV === 'production'
-    ? '/image-crop/'
+    ? '/'
     : '/'
 }
