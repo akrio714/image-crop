@@ -7,11 +7,18 @@
       <div class="next-btn"
            @click="toNextPage">{{nextBtnText}}</div>
     </div>
-    <img style="position:fixed;top:0;left:0;width:100px;z-index:999"
-         :src="src"
-         @click="src = ''" />
+    <div class="bottom-image-list"
+         v-show="type === 'show'">
+      <div class="image-item"
+           v-for="(img,index) in cropImgList"
+           :key="index">
+        <img class="img"
+             v-lazy:background-image="img.url"
+             :key="img.url"/>
+      </div>
+    </div>
     <div class="crop-container"
-         v-show="type === 'crop'">
+         v-show="type === 'crop' || selectList.length === 1">
       <div class="crop-img-container"
            ref="crop"
            :style="cropSize">
@@ -30,17 +37,17 @@
            v-show="selectType === 'single'"
            @click.stop="switchFull"></div>
       <div class="mul-icon"
+           v-show="type === 'crop'"
            @click.stop="switchSelectType"></div>
       <!--锁定样式超出区域显示黑色-->
       <div class="crop-line-container"
            ref="elCrop">
       </div>
     </div>
-    <swiper v-if="type === 'filter'"
+    <swiper v-if="type === 'filter' && selectList.length > 1"
             :options="swiperOption"
             class="crop-container"
-            ref="filterSwiper"
-            @someSwiperEvent="filterImgSwitch">
+            ref="filterSwiper">
       <!-- slides -->
       <swiper-slide v-for="image in selectList"
                     :key="image.url">
@@ -113,13 +120,17 @@ export default {
   components: { CropItem },
   data () {
     return {
-      src: '',
       swiperOption: { // swiper配置文件
         pagination: {
           el: '.swiper-pagination',
           dynamicBullets: true
         }
       },
+      lockSize: { // 裁切框size
+        width: 0,
+        height: 0
+      },
+      cropImgList: [],
       filterIndex: 0, // 滤镜模式选中的图片索引
       type: 'crop', // 裁切模式:crop 滤镜模式:filter
       selectType: 'single', // 单选模式:single 多选模式: mul 
@@ -257,10 +268,20 @@ export default {
     /**
      * 导出当前图片
      */
-    exportImg () {
+    async exportImg () {
+      this.cropImgList = []
       // 获取当前裁切框的大小和其中图片大小
-      let { clientWidth: cropWidth, clientHeight: cropHeight } = this.$refs.crop
-      this.selectList.forEach(model => {
+      let cropWidth = 0
+      let cropHeight = 0
+      if (this.selectType === 'single') {
+        cropWidth = this.$refs.crop.clientWidth
+        cropHeight = this.$refs.crop.clientHeight
+      } else {
+        cropWidth = this.lockSize.width
+        cropHeight = this.lockSize.height
+      }
+      for (let i = 0; i < this.selectList.length; i++) {
+        const model = this.selectList[0]
         const canvas = document.createElement('canvas')
         const ctx = canvas.getContext('2d')
         const cropX = model.crop.x / model.crop.scale
@@ -283,11 +304,15 @@ export default {
         // 添加滤镜
         let currentCropImage = new Image()
         currentCropImage.src = canvas.toDataURL('image/jpeg')
+        await imageLoad({ image: currentCropImage })
         currentCropImage.onload = () => {
           const resultImg = imgFilter({ image: currentCropImage, type: model.filter })
-          this.src = resultImg.toDataURL('image/jpeg')
+          const src = resultImg.toDataURL('image/jpeg')
+          this.cropImgList.push({
+            url: src
+          })
         }
-      });
+      }
     },
     /**
      * 通过按钮触发缩放
@@ -344,11 +369,13 @@ export default {
         this.filterIndex = 0
         this.type = 'filter'
         this.$nextTick(() => {
-          const swiper = this.$refs.filterSwiper.swiper
-          swiper.slideTo(this.filterIndex)
-          swiper.on('slideChange', () => {
-            this.filterIndex = swiper.realIndex
-          });
+          if (this.selectList.length > 1) {
+            const swiper = this.$refs.filterSwiper.swiper
+            swiper.slideTo(this.filterIndex)
+            swiper.on('slideChange', () => {
+              this.filterIndex = swiper.realIndex
+            });
+          }
         })
       } else {
         this.exportImg()
