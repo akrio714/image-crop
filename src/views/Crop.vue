@@ -230,7 +230,7 @@ export default {
       }
       const crop = this.currentImg.crop
       return {
-        transform: `translate(${-crop.x}px,${-crop.y}px) scale(${crop.scale})`
+        transform: `translate3d(${-crop.x}px,${-crop.y}px,0px) scale(${crop.scale})`
       }
     },
     /**
