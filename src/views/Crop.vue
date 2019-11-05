@@ -9,14 +9,15 @@
     </div>
     <div class="export-img-modal"
          v-if="showCropPage">
-         <div class="original-image" v-lazy:background-image="cropImgList[cropImgIndex].url"
-               :key="cropImgList[cropImgIndex].id"></div>
+      <div class="original-image"
+           v-lazy:background-image="cropImgList[cropImgIndex].url"
+           :key="cropImgList[cropImgIndex].id"></div>
       <div class="cover-image-list">
         <div class="image-item"
              v-for="img in cropImgList"
              :key="img.id">
           <div class="img"
-          @click="cropImgIndex = img.id"
+               @click="cropImgIndex = img.id"
                v-lazy:background-image="img.url"
                :key="img.id"></div>
         </div>
@@ -33,7 +34,7 @@
       </div>
     </div>
     <div class="crop-container"
-         v-show="type === 'crop' || selectList.length === 1">
+         v-show="type === 'crop' || (type === 'filter' && selectList.length === 1)">
       <div class="crop-img-container"
            ref="crop"
            :style="cropSize">
@@ -54,6 +55,9 @@
       <div class="mul-icon"
            v-show="type === 'crop'"
            @click.stop="switchSelectType"></div>
+      <div class="filter-icon"
+           v-show="type !== 'crop'"
+           @click.stop="drawClick"></div>
       <!--锁定样式超出区域显示黑色-->
       <div class="crop-line-container"
            ref="elCrop">
@@ -69,7 +73,9 @@
         <crop-item class="filter-item"
                    :filter="image.filter"
                    :imgCropSize="cropSize"
-                   :currentImg="image"></crop-item>
+                   :currentImg="image">
+          <div class="filter-icon"></div>
+        </crop-item>
       </swiper-slide>
       <div class="swiper-pagination"
            slot="pagination"></div>
@@ -104,6 +110,10 @@
         </div>
       </div>
     </div>
+    <!-- 涂鸦弹出框 -->
+    <div v-if="type === 'draw'">
+
+    </div>
   </div>
 </template>
 
@@ -137,7 +147,7 @@ export default {
     return {
       cropImgList: [],
       showCropPage: false,
-      cropImgIndex:0,
+      cropImgIndex: 0,
       swiperOption: { // swiper配置文件
         pagination: {
           el: '.swiper-pagination',
@@ -149,7 +159,7 @@ export default {
         height: 0
       },
       filterIndex: 0, // 滤镜模式选中的图片索引
-      type: 'crop', // 裁切模式:crop 滤镜模式:filter
+      type: 'crop', // 裁切模式:crop 滤镜模式:filter 涂鸦模式:draw
       selectType: 'single', // 单选模式:single 多选模式: mul 
       imageList: [img1, img6, img2, img3, img4, img5, img7, img8, img9, img10, img11, img12, img13, img14, img15, img16, img17, img18, img19], // 可选图片列表
       selectIndex: 0, // 当前裁切模式选中的图片
@@ -174,6 +184,8 @@ export default {
         return '关闭'
       } else if (this.type === 'filter') {
         return '后退'
+      } else if (this.type === 'draw') {
+        return '后退'
       }
       return '未知'
     },
@@ -185,6 +197,8 @@ export default {
         return '继续'
       } else if (this.type === 'filter') {
         return '完成'
+      } else if (this.type === 'draw') {
+        return '保存'
       }
       return '未知'
     },
@@ -196,6 +210,8 @@ export default {
         return '裁切'
       } else if (this.type === 'filter') {
         return '滤镜'
+      } else if (this.type === 'draw') {
+        return '涂鸦'
       }
       return '未知'
     },
@@ -264,6 +280,12 @@ export default {
     }
   },
   methods: {
+    /**
+     * 涂鸦按钮点击
+     */
+    drawClick () {
+      this.type = 'draw'
+    },
     /**
      * 切换选中方式 single:单选 mul:多选
      */
@@ -411,6 +433,8 @@ export default {
         // 主要为了演示裁切所做
         this.cropImgIndex = 0
         this.showCropPage = true
+      } else if (this.type === 'draw') {
+        this.type = 'filter'
       }
     },
     /**
@@ -424,6 +448,8 @@ export default {
       }
       if (this.type === 'filter') {
         this.type = 'crop'
+      } else if (this.type === 'draw') {
+        this.type = 'filter'
       }
     },
     /**计算图片铺满缩放 */
@@ -699,7 +725,8 @@ export default {
     .enlargement-icon,
     .rotate-icon,
     .cut-icon,
-    .mul-icon {
+    .mul-icon,
+    .filter-icon {
       width: 24px;
       height: 24px;
       background-size: contain;
@@ -736,6 +763,15 @@ export default {
     // 单多选切换按钮
     .mul-icon {
       background-image: url("../assets/mul.png");
+      width: 35px;
+      height: 35px;
+      bottom: 20px;
+      right: 20px;
+      left: inherit;
+    }
+    // 单多选切换按钮
+    .filter-icon {
+      background-image: url("../assets/filter2.png");
       width: 35px;
       height: 35px;
       bottom: 20px;
