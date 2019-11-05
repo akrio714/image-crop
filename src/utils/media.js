@@ -1,5 +1,25 @@
+import BMF from 'browser-md5-file'
 import ImageCompressor from 'image-compressor.js'
 import './filter'
+/**
+ * 图片md5加密
+ * @param image 图片文件
+ * @returns {Promise}
+ */
+export function md5({ image }) {
+  return new Promise((resolve, reject) => {
+    const bmf = new BMF()
+    bmf.md5(image,
+      (err, md5) => {
+        if (err) {
+          reject(err)
+        } else {
+          resolve(md5)
+        }
+      }
+    )
+  })
+}
 /**
  * 图片滤镜
  * @param image 图片
@@ -37,12 +57,10 @@ export function imageLoad({ image, src }) {
  * @param original 是否为原尺寸，即不进行任何压缩
  * @returns {Promise<Blob>}
  */
-export async function compressor({ image, ins = false }) {
+export async function compressor({ image, original = false }) {
   const imageCompressor = new ImageCompressor()
-  imageCompressor.crossOrigin = 'Anonymous'
   let params
-  // 如果是ins账号限定宽度
-  if (ins) {
+  if (original) {
     params = {
       quality: 1,
       minWidth: 320,
@@ -61,4 +79,17 @@ export async function compressor({ image, ins = false }) {
   }
   const result = await imageCompressor.compress(image, params)
   return result
+}
+/**
+ * canvas 转blob
+ * @param canvas 需要转换的canvas
+ * @returns {Promise<any>}
+ */
+export function canvasBlob({ canvas }) {
+  const promise = new Promise(resolve => {
+    canvas.toBlob((blob) => {
+      resolve(blob)
+    })
+  })
+  return promise
 }

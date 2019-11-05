@@ -7,14 +7,29 @@
       <div class="next-btn"
            @click="toNextPage">{{nextBtnText}}</div>
     </div>
+    <div class="export-img-modal"
+         v-if="showCropPage">
+         <div class="original-image" v-lazy:background-image="cropImgList[cropImgIndex].url"
+               :key="cropImgList[cropImgIndex].id"></div>
+      <div class="cover-image-list">
+        <div class="image-item"
+             v-for="img in cropImgList"
+             :key="img.id">
+          <div class="img"
+          @click="cropImgIndex = img.id"
+               v-lazy:background-image="img.url"
+               :key="img.id"></div>
+        </div>
+      </div>
+    </div>
     <div class="bottom-image-list"
          v-show="type === 'show'">
       <div class="image-item"
            v-for="(img,index) in cropImgList"
            :key="index">
         <img class="img"
-             v-lazy:background-image="img.url"
-             :key="img.url"/>
+             v-lazy:background-image="img.coverUrl"
+             :key="img.coverUrl" />
       </div>
     </div>
     <div class="crop-container"
@@ -112,7 +127,7 @@ import img16 from '@/assets/16.jpg'
 import img17 from '@/assets/17.jpg'
 import img18 from '@/assets/18.jpg'
 import img19 from '@/assets/19.jpg'
-import { imageLoad, imgFilter } from '../utils/media'
+import { imageLoad, imgFilter, canvasBlob, compressor, md5 } from '../utils/media'
 import Hammer from 'hammerjs'
 import CropItem from '../components/CropItem'
 export default {
@@ -120,6 +135,9 @@ export default {
   components: { CropItem },
   data () {
     return {
+      cropImgList: [],
+      showCropPage: false,
+      cropImgIndex:0,
       swiperOption: { // swiper配置文件
         pagination: {
           el: '.swiper-pagination',
@@ -130,7 +148,6 @@ export default {
         width: 0,
         height: 0
       },
-      cropImgList: [],
       filterIndex: 0, // 滤镜模式选中的图片索引
       type: 'crop', // 裁切模式:crop 滤镜模式:filter
       selectType: 'single', // 单选模式:single 多选模式: mul 
@@ -281,37 +298,47 @@ export default {
         cropHeight = this.lockSize.height
       }
       for (let i = 0; i < this.selectList.length; i++) {
-        const model = this.selectList[0]
+        const model = this.selectList[i]
         const canvas = document.createElement('canvas')
         const ctx = canvas.getContext('2d')
         const cropX = model.crop.x / model.crop.scale
         const cropY = model.crop.y / model.crop.scale
-        cropWidth = cropWidth / model.crop.scale
-        cropHeight = cropHeight / model.crop.scale
-        canvas.width = cropWidth
-        canvas.height = cropHeight
+        const exportCropWidth = cropWidth / model.crop.scale
+        const exportCropHeight = cropHeight / model.crop.scale
+        canvas.width = exportCropWidth
+        canvas.height = exportCropHeight
         ctx.drawImage(
           model.image,
           cropX,
           cropY,
-          cropWidth,
-          cropHeight,
+          canvas.width,
+          canvas.height,
           0,
           0,
-          cropWidth,
-          cropHeight
+          canvas.width,
+          canvas.height
         )
         // 添加滤镜
         let currentCropImage = new Image()
         currentCropImage.src = canvas.toDataURL('image/jpeg')
         await imageLoad({ image: currentCropImage })
-        currentCropImage.onload = () => {
-          const resultImg = imgFilter({ image: currentCropImage, type: model.filter })
-          const src = resultImg.toDataURL('image/jpeg')
-          this.cropImgList.push({
-            url: src
-          })
-        }
+        const filterCanvas = imgFilter({ image: currentCropImage, type: model.filter })
+        // 将图片转成file便于压缩
+        const imageFile = await canvasBlob({ canvas: filterCanvas })
+        // 分别获取裁切图片和缩略图
+        const coverImage = await compressor({ image: imageFile, original: false })
+        const originalImage = await compressor({ image: imageFile, original: true })
+        // 在获取2图片的md5码以确认是否存在重复项，这样可以减少请求
+        const coverImageName = await md5({ image: coverImage })
+        const originalImageName = await md5({ image: originalImage })
+        this.cropImgList.push({
+          id: i,
+          url: window.URL.createObjectURL(originalImage),
+          coverUrl: window.URL.createObjectURL(coverImage),
+          coverImageName,
+          originalImageName
+        })
+        console.log(`原图(${originalImageName}):${window.URL.createObjectURL(originalImage)}\n缩略(${coverImageName}):${window.URL.createObjectURL(coverImage)}`)
       }
     },
     /**
@@ -353,6 +380,8 @@ export default {
         scale = maxScale
       }
       this.currentImg.crop.scale = scale
+      // 防止缩放超出边界
+      this.validateMargin()
     },
     /**
      * 切换当前图片滤镜
@@ -363,7 +392,7 @@ export default {
     /**
      * 右侧按钮点击事件
      */
-    toNextPage () {
+    async toNextPage () {
       if (this.type === 'crop') {
         // 重置滤镜索引
         this.filterIndex = 0
@@ -377,14 +406,22 @@ export default {
             });
           }
         })
-      } else {
-        this.exportImg()
+      } else if (this.type === 'filter') {
+        await this.exportImg()
+        // 主要为了演示裁切所做
+        this.cropImgIndex = 0
+        this.showCropPage = true
       }
     },
     /**
      * 左侧按钮点击事件
      */
     toPrevPage () {
+      if (this.showCropPage) {
+        this.type = 'filter'
+        this.showCropPage = false
+        return
+      }
       if (this.type === 'filter') {
         this.type = 'crop'
       }
@@ -786,6 +823,47 @@ export default {
       border: 3px solid white;
       &.active {
         border-color: red;
+      }
+    }
+  }
+  .export-img-modal {
+    position: fixed;
+    left: 0;
+    top: 44px;
+    bottom: 0;
+    right: 0;
+    z-index: 99;
+    background: white;
+    display: flex;
+    flex-direction: column;
+    .original-image {
+      width: 100vw;
+      height: 100vw;
+      background: gray;
+      background-size: contain;
+      background-repeat: no-repeat;
+      background-position: center;
+    }
+    .cover-image-list {
+      overflow: scroll;
+      -webkit-overflow-scrolling: touch;
+      display: flex;
+      flex-flow: wrap;
+      align-content: flex-start;
+      flex: 1;
+      .image-item {
+        width: 25vw;
+        height: 25vw;
+        padding: 1px;
+        box-sizing: border-box;
+        .img {
+          height: 100%;
+          width: 100%;
+          background: gray;
+          background-size: contain;
+          background-repeat: no-repeat;
+          background-position: center;
+        }
       }
     }
   }
