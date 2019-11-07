@@ -3,9 +3,10 @@
 单图模式：图片默认会长边顶满屏幕，短边比例自适应。图片可进行放大，可视区域即为裁切后图片。所以图片比例会随着放大逐渐趋近于1。
 
 多图模式：单图模式选择好比例后，多图选中后都会沿用之前单图比例，保持裁切出的多张图片比例一致。
+## 演示demo
 
-## 功能
-![http://www.giphy.com/gifs/W0cwDeVq34ScB9rgvz](http://www.giphy.com/gifs/W0cwDeVq34ScB9rgvz)
+![./public/demo1.gif](./public/demo1.gif)
+
 ### 图片缩放
 
 图片最小缩放为长边顶满,最大缩放为最小的3倍。
@@ -46,7 +47,7 @@
 
 tip:为什么一定使用js计算滤镜，因为canvas绘图的时候css滤镜不支持。
 
-## Demo
+## 在线Demo
 
 ![./public/demo.png](./public/demo.png)
 
