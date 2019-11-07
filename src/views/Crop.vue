@@ -306,7 +306,7 @@ export default {
           points.push({x,y})
         });
         drawHammer.on('panend', () => {
-          this.currentImg.
+         
         });
       })
     },
