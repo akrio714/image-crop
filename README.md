@@ -5,7 +5,7 @@
 多图模式：单图模式选择好比例后，多图选中后都会沿用之前单图比例，保持裁切出的多张图片比例一致。
 
 ## 功能
-
+![http://www.giphy.com/gifs/W0cwDeVq34ScB9rgvz](http://www.giphy.com/gifs/W0cwDeVq34ScB9rgvz)
 ### 图片缩放
 
 图片最小缩放为长边顶满,最大缩放为最小的3倍。
