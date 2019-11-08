@@ -288,7 +288,7 @@ export default {
   },
   methods: {
     /**
-     * 涂鸦按钮点击
+     * 涂鸦按钮点击 - 未完成
      */
     drawClick () {
       this.type = 'draw'
