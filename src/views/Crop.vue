@@ -692,7 +692,7 @@ export default {
       this.scale(scale * e.scale)
     });
     cropHammer.on('doubletap', () => {
-      if (this.selectType !== 'single') {
+      if (this.selectType === 'single') {
         this.switchFull()
       }
     })
