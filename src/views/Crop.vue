@@ -87,8 +87,8 @@
            v-for="img in bottomImageList"
            :key="img.url">
         <div class="img"
-             v-lazy:background-image="img.url"
-             :key="img.url"></div>
+            :style="{'background-image':`url(${img.url})`}"
+            ></div>
         <div class="select-mask"
              v-show="img.current"></div>
         <div class="select-icon"
