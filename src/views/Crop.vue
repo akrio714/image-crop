@@ -29,7 +29,7 @@
            v-for="(img,index) in cropImgList"
            :key="index">
         <img class="img"
-             v-lazy="img.coverUrl"
+             v-lazy:background-image="img.coverUrl"
              :key="img.coverUrl" />
       </div>
     </div>
@@ -87,8 +87,8 @@
            v-for="img in bottomImageList"
            :key="img.url">
         <div class="img"
-            :style="{'background-image':`url(${img.url})`}"
-            ></div>
+             v-lazy:background-image="img.url"
+             :key="img.url"></div>
         <div class="select-mask"
              v-show="img.current"></div>
         <div class="select-icon"
