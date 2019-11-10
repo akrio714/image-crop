@@ -29,7 +29,7 @@
            v-for="(img,index) in cropImgList"
            :key="index">
         <img class="img"
-             v-lazy:src="img.coverUrl"
+             v-lazy="img.coverUrl"
              :key="img.coverUrl" />
       </div>
     </div>
@@ -42,7 +42,7 @@
              :style="imgStyle"
              ref="img"
              :class="currentImg?currentImg.filter:''"
-             v-lazy:src="currentImg?currentImg.url:''"
+             v-lazy="currentImg?currentImg.url:''"
              :key="currentImg?currentImg.url:''" />
       </div>
       <div class="shrink-icon"
