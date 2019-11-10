@@ -42,8 +42,7 @@
              :style="imgStyle"
              ref="img"
              :class="currentImg?currentImg.filter:''"
-             v-lazy="currentImg?currentImg.url:''"
-             :key="currentImg?currentImg.url:''" />
+             :src="currentImg?currentImg.url:''" />
       </div>
       <div class="shrink-icon"
            @click.stop="shrinkClick(true)"></div>
@@ -87,7 +86,7 @@
            v-for="img in bottomImageList"
            :key="img.url">
         <div class="img"
-             v-lazy:background-image="img.url"
+             :style="{'background-image':`url(${img.url})`}"
              :key="img.url"></div>
         <div class="select-mask"
              v-show="img.current"></div>
