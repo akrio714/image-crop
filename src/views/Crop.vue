@@ -10,7 +10,7 @@
     <div class="export-img-modal"
          v-if="showCropPage">
       <div class="original-image"
-           :style="{'background-image':cropImgList[cropImgIndex].url}"
+           v-lazy:background-image="cropImgList[cropImgIndex].url"
            :key="cropImgList[cropImgIndex].id"></div>
       <div class="cover-image-list">
         <div class="image-item"
@@ -18,7 +18,7 @@
              :key="img.id">
           <div class="img"
                @click="cropImgIndex = img.id"
-               :style="{'background-image':img.url}"
+               v-lazy:background-image="img.url"
                :key="img.id"></div>
         </div>
       </div>
@@ -29,7 +29,7 @@
            v-for="(img,index) in cropImgList"
            :key="index">
         <img class="img"
-             :src="img.coverUrl"
+             v-lazy:background-image="img.coverUrl"
              :key="img.coverUrl" />
       </div>
     </div>
@@ -87,7 +87,7 @@
            v-for="img in bottomImageList"
            :key="img.url">
         <div class="img"
-             :style="{'background-image':img.url}"
+             v-lazy:background-image="img.url"
              :key="img.url"></div>
         <div class="select-mask"
              v-show="img.current"></div>
