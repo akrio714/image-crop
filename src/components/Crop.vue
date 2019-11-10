@@ -1,40 +1,7 @@
 <template>
   <div class="crop-page">
-    <div class="top-header">
-      <div class="left-icon"
-           @click="toPrevPage">{{prevBtnText}}</div>
-      <div class="title">{{title}}</div>
-      <div class="next-btn"
-           @click="toNextPage">{{nextBtnText}}</div>
-    </div>
-    <div class="export-img-modal"
-         v-if="showCropPage">
-      <div class="original-image"
-           :style="{'background-image':cropImgList[cropImgIndex].url}"
-           :key="cropImgList[cropImgIndex].id"></div>
-      <div class="cover-image-list">
-        <div class="image-item"
-             v-for="img in cropImgList"
-             :key="img.id">
-          <div class="img"
-               @click="cropImgIndex = img.id"
-               :style="{'background-image':img.url}"
-               :key="img.id"></div>
-        </div>
-      </div>
-    </div>
-    <div class="bottom-image-list"
-         v-show="type === 'show'">
-      <div class="image-item"
-           v-for="(img,index) in cropImgList"
-           :key="index">
-        <img class="img"
-             :src="img.coverUrl"
-             :key="img.coverUrl" />
-      </div>
-    </div>
     <div class="crop-container"
-         v-show="type === 'crop' || (type === 'filter' && selectList.length === 1)">
+         v-show="type === 'crop'">
       <div class="crop-img-container"
            ref="crop"
            :style="cropSize">
@@ -53,35 +20,13 @@
            v-show="selectType === 'single'"
            @click.stop="switchFull"></div>
       <div class="mul-icon"
-           v-show="type === 'crop'"
            @click.stop="switchSelectType"></div>
-      <div class="filter-icon"
-           v-show="type !== 'crop'"
-           @click.stop="drawClick"></div>
       <!--锁定样式超出区域显示黑色-->
       <div class="crop-line-container"
            ref="elCrop">
       </div>
     </div>
-    <swiper v-if="type === 'filter' && selectList.length > 1"
-            :options="swiperOption"
-            class="crop-container"
-            ref="filterSwiper">
-      <!-- slides -->
-      <swiper-slide v-for="image in selectList"
-                    :key="image.url">
-        <crop-item class="filter-item"
-                   :filter="image.filter"
-                   :imgCropSize="cropSize"
-                   :currentImg="image">
-          <div class="filter-icon"></div>
-        </crop-item>
-      </swiper-slide>
-      <div class="swiper-pagination"
-           slot="pagination"></div>
-    </swiper>
-    <div class="bottom-image-list"
-         v-show="this.type === 'crop'">
+    <div class="bottom-image-list">
       <div class="image-item"
            @click="imgClick(img.url)"
            v-for="img in bottomImageList"
@@ -95,133 +40,23 @@
              v-if="img.index">{{img.index}}</div>
       </div>
     </div>
-    <div class="filter-list-container"
-         v-if="this.type === 'filter'">
-      <div v-for="filterType in filterTypes"
-           :key="filterType.name"
-           @click="switchFilter(filterType)">
-        <div>
-          <crop-item class="filter-item"
-                     :filter="filterType.name"
-                     :imgCropSize="cropSize"
-                     :class="{active:filterType.name === selectList[filterIndex].filter}"
-                     :currentImg="selectList[filterIndex]"></crop-item>
-          <div>{{filterType.name}}</div>
-        </div>
-      </div>
-    </div>
-    <!-- 涂鸦弹出框 -->
-    <div class="draw-component"
-         v-if="type === 'draw'">
-      <div class="draw-container"
-           ref="elDraw"
-           :style="cropSize"></div>
-      <crop-item class="draw-item"
-                 :filter="currentImg.name"
-                 :imgCropSize="cropSize"
-                 :currentImg="currentImg"></crop-item>
-    </div>
   </div>
 </template>
 
 <script>
-import img1 from '../../public/images/1.jpg'
-import img2 from '../../public/images/2.jpg'
-import img3 from '../../public/images/3.jpg'
-import img4 from '../../public/images/4.jpg'
-import img5 from '../../public/images/5.jpg'
-import img6 from '../../public/images/6.jpg'
-import img7 from '../../public/images/7.jpg'
-import img8 from '../../public/images/8.jpg'
-import img9 from '../../public/images/9.jpg'
-import img10 from '../../public/images/10.jpg'
-import img11 from '../../public/images/11.jpg'
-import img12 from '../../public/images/12.jpg'
-import img13 from '../../public/images/13.jpg'
-import img14 from '../../public/images/14.jpg'
-import img15 from '../../public/images/15.jpg'
-import img16 from '../../public/images/16.jpg'
-import img17 from '../../public/images/17.jpg'
-import img18 from '../../public/images/18.jpg'
-import img19 from '../../public/images/19.jpg'
-import { imageLoad, imgFilter, canvasBlob, compressor, md5 } from '../utils/media'
+import { imageLoad } from '../utils/media'
 import Hammer from 'hammerjs'
-import CropItem from '../components/CropItem'
 export default {
   name: 'CropPage',
-  components: { CropItem },
   data () {
     return {
-      cropImgList: [],
-      showCropPage: false,
-      cropImgIndex: 0,
-      swiperOption: { // swiper配置文件
-        pagination: {
-          el: '.swiper-pagination',
-          dynamicBullets: true
-        }
-      },
-      lockSize: { // 裁切框size
-        width: 0,
-        height: 0
-      },
       filterIndex: 0, // 滤镜模式选中的图片索引
-      type: 'crop', // 裁切模式:crop 滤镜模式:filter 涂鸦模式:draw
       selectType: 'single', // 单选模式:single 多选模式: mul 
-      imageList: [img18, img6, img17, img19, img1, img2, img3, img4, img5, img7, img8, img9, img10, img11, img12, img13, img14, img15, img16], // 可选图片列表
       selectIndex: 0, // 当前裁切模式选中的图片
       selectList: [], // 已经选中的图片列表
-      filterTypes: [ // 滤镜类型
-        { name: 'normal', type: 'normal' },
-        { name: 'clarendon', type: 'clarendon' },
-        { name: 'lark', type: 'lark' },
-        { name: 'gingham', type: 'gingham' },
-        { name: 'valencia', type: 'valencia' },
-        { name: 'xpro2', type: 'xpro2' },
-        { name: 'lofi', type: 'lofi' }
-      ],
     }
   },
   computed: {
-    /**
-     * 左侧按钮文案
-     */
-    prevBtnText () {
-      if (this.type === 'crop') {
-        return '关闭'
-      } else if (this.type === 'filter') {
-        return '后退'
-      } else if (this.type === 'draw') {
-        return '后退'
-      }
-      return '未知'
-    },
-    /**
-     * 右侧按钮文案
-     */
-    nextBtnText () {
-      if (this.type === 'crop') {
-        return '继续'
-      } else if (this.type === 'filter') {
-        return '完成'
-      } else if (this.type === 'draw') {
-        return '保存'
-      }
-      return '未知'
-    },
-    /**
-     * 标题
-     */
-    title () {
-      if (this.type === 'crop') {
-        return '裁切'
-      } else if (this.type === 'filter') {
-        return '滤镜'
-      } else if (this.type === 'draw') {
-        return '涂鸦'
-      }
-      return '未知'
-    },
     /**
      * 可选择图片列表
      */
@@ -253,7 +88,7 @@ export default {
       }
       const crop = this.currentImg.crop
       return {
-        transform: `translate3d(${-crop.x}px,${-crop.y}px,0px) scale(${crop.scale})`
+        transform: `translate(${-crop.x}px,${-crop.y}px) scale(${crop.scale})`
       }
     },
     /**
@@ -288,29 +123,6 @@ export default {
   },
   methods: {
     /**
-     * 涂鸦按钮点击 - 未完成
-     */
-    drawClick () {
-      this.type = 'draw'
-      this.$nextTick(() => {
-        // 如果是划线类型则记录路径
-        let points = []
-        // 监听点击滑动事件
-        var drawHammer = new Hammer(this.$refs.elDraw);
-        drawHammer.on('panstart', () => {
-          points = []
-        });
-        drawHammer.on('panmove', (e) => {
-          const x = e.center.x
-          const y = e.center.y
-          points.push({ x, y })
-        });
-        drawHammer.on('panend', () => {
-
-        });
-      })
-    },
-    /**
      * 切换选中方式 single:单选 mul:多选
      */
     switchSelectType () {
@@ -326,65 +138,6 @@ export default {
         this.selectType = 'single'
         this.selectList.splice(1, this.selectList.length - 1)
         this.selectIndex = 0
-      }
-    },
-    /**
-     * 导出当前图片
-     */
-    async exportImg () {
-      this.cropImgList = []
-      // 获取当前裁切框的大小和其中图片大小
-      let cropWidth = 0
-      let cropHeight = 0
-      if (this.selectType === 'single') {
-        cropWidth = this.$refs.crop.clientWidth
-        cropHeight = this.$refs.crop.clientHeight
-      } else {
-        cropWidth = this.lockSize.width
-        cropHeight = this.lockSize.height
-      }
-      for (let i = 0; i < this.selectList.length; i++) {
-        const model = this.selectList[i]
-        const canvas = document.createElement('canvas')
-        const ctx = canvas.getContext('2d')
-        const cropX = model.crop.x / model.crop.scale
-        const cropY = model.crop.y / model.crop.scale
-        const exportCropWidth = cropWidth / model.crop.scale
-        const exportCropHeight = cropHeight / model.crop.scale
-        canvas.width = exportCropWidth
-        canvas.height = exportCropHeight
-        ctx.drawImage(
-          model.image,
-          cropX,
-          cropY,
-          canvas.width,
-          canvas.height,
-          0,
-          0,
-          canvas.width,
-          canvas.height
-        )
-        // 添加滤镜
-        let currentCropImage = new Image()
-        currentCropImage.src = canvas.toDataURL('image/jpeg')
-        await imageLoad({ image: currentCropImage })
-        const filterCanvas = imgFilter({ image: currentCropImage, type: model.filter })
-        // 将图片转成file便于压缩
-        const imageFile = await canvasBlob({ canvas: filterCanvas })
-        // 分别获取裁切图片和缩略图
-        const coverImage = await compressor({ image: imageFile, original: false })
-        const originalImage = await compressor({ image: imageFile, original: true })
-        // 在获取2图片的md5码以确认是否存在重复项，这样可以减少请求
-        const coverImageName = await md5({ image: coverImage })
-        const originalImageName = await md5({ image: originalImage })
-        this.cropImgList.push({
-          id: i,
-          url: window.URL.createObjectURL(originalImage),
-          coverUrl: window.URL.createObjectURL(coverImage),
-          coverImageName,
-          originalImageName
-        })
-        console.log(`原图(${originalImageName}):${window.URL.createObjectURL(originalImage)}\n缩略(${coverImageName}):${window.URL.createObjectURL(coverImage)}`)
       }
     },
     /**
@@ -426,55 +179,6 @@ export default {
         scale = maxScale
       }
       this.currentImg.crop.scale = scale
-      // 防止缩放超出边界
-      this.validateMargin()
-    },
-    /**
-     * 切换当前图片滤镜
-     */
-    switchFilter (filterType) {
-      this.selectList[this.filterIndex].filter = filterType.type
-    },
-    /**
-     * 右侧按钮点击事件
-     */
-    async toNextPage () {
-      if (this.type === 'crop') {
-        // 重置滤镜索引
-        this.filterIndex = 0
-        this.type = 'filter'
-        this.$nextTick(() => {
-          if (this.selectList.length > 1) {
-            const swiper = this.$refs.filterSwiper.swiper
-            swiper.slideTo(this.filterIndex)
-            swiper.on('slideChange', () => {
-              this.filterIndex = swiper.realIndex
-            });
-          }
-        })
-      } else if (this.type === 'filter') {
-        await this.exportImg()
-        // 主要为了演示裁切所做
-        this.cropImgIndex = 0
-        this.showCropPage = true
-      } else if (this.type === 'draw') {
-        this.type = 'filter'
-      }
-    },
-    /**
-     * 左侧按钮点击事件
-     */
-    toPrevPage () {
-      if (this.showCropPage) {
-        this.type = 'filter'
-        this.showCropPage = false
-        return
-      }
-      if (this.type === 'filter') {
-        this.type = 'crop'
-      } else if (this.type === 'draw') {
-        this.type = 'filter'
-      }
     },
     /**计算图片铺满缩放 */
     fullScale ({ type }) {
@@ -520,8 +224,7 @@ export default {
           y: 0,
           scale: 0.5,
           roate: 0
-        },
-        pathList: []
+        }
       }
       // 查看当前是否为选中项，如果选中则进行取消
       const selectIndex = this.selectList.findIndex(i => i.url === img)
@@ -692,9 +395,7 @@ export default {
       this.scale(scale * e.scale)
     });
     cropHammer.on('doubletap', () => {
-      if (this.selectType === 'single') {
-        this.switchFull()
-      }
+      this.switchFull()
     })
   }
 }
@@ -752,8 +453,7 @@ export default {
     .enlargement-icon,
     .rotate-icon,
     .cut-icon,
-    .mul-icon,
-    .filter-icon {
+    .mul-icon {
       width: 24px;
       height: 24px;
       background-size: contain;
@@ -790,15 +490,6 @@ export default {
     // 单多选切换按钮
     .mul-icon {
       background-image: url("../assets/mul.png");
-      width: 35px;
-      height: 35px;
-      bottom: 20px;
-      right: 20px;
-      left: inherit;
-    }
-    // 单多选切换按钮
-    .filter-icon {
-      background-image: url("../assets/filter2.png");
       width: 35px;
       height: 35px;
       bottom: 20px;
@@ -887,63 +578,6 @@ export default {
       &.active {
         border-color: red;
       }
-    }
-  }
-  .export-img-modal {
-    position: fixed;
-    left: 0;
-    top: 44px;
-    bottom: 0;
-    right: 0;
-    z-index: 99;
-    background: white;
-    display: flex;
-    flex-direction: column;
-    .original-image {
-      width: 100vw;
-      height: 100vw;
-      background: gray;
-      background-size: contain;
-      background-repeat: no-repeat;
-      background-position: center;
-    }
-    .cover-image-list {
-      overflow: scroll;
-      -webkit-overflow-scrolling: touch;
-      display: flex;
-      flex-flow: wrap;
-      align-content: flex-start;
-      flex: 1;
-      .image-item {
-        width: 25vw;
-        height: 25vw;
-        padding: 1px;
-        box-sizing: border-box;
-        .img {
-          height: 100%;
-          width: 100%;
-          background: gray;
-          background-size: contain;
-          background-repeat: no-repeat;
-          background-position: center;
-        }
-      }
-    }
-  }
-  .draw-component {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    position: relative;
-    width: 100vw;
-    height: 100vw;
-    .draw-container {
-      position: absolute;
-    }
-    .draw-item {
-      width: 100vw;
-      height: 100vw;
-      position: absolute;
     }
   }
 }
