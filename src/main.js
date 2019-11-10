@@ -12,7 +12,7 @@ Vue.use(VueAwesomeSwiper)
 // or with options
 Vue.use(VueLazyload, {
   preLoad: 1.3,
-  attempt: 1,
+  attempt: 3,
   throttleWait:0
 })
 new Vue({
