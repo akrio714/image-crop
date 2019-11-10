@@ -42,7 +42,7 @@
              :style="imgStyle"
              ref="img"
              :class="currentImg?currentImg.filter:''"
-             v-lazy="currentImg?currentImg.url:''"
+             :src="currentImg?currentImg.url:''"
              :key="currentImg?currentImg.url:''" />
       </div>
       <div class="shrink-icon"
@@ -168,7 +168,7 @@ export default {
       filterIndex: 0, // 滤镜模式选中的图片索引
       type: 'crop', // 裁切模式:crop 滤镜模式:filter 涂鸦模式:draw
       selectType: 'single', // 单选模式:single 多选模式: mul 
-      imageList: [img18, img6, img17, img19, img1, img2, img3, img4, img5, img7, img8, img9, img10, img11, img12, img13, img14, img15, img16], // 可选图片列表
+      imageList: [img18, img6, img17, img19, img1, img2, img3, img4, img5, img7, img8, img9, img10], // 可选图片列表
       selectIndex: 0, // 当前裁切模式选中的图片
       selectList: [], // 已经选中的图片列表
       filterTypes: [ // 滤镜类型
