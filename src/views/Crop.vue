@@ -81,6 +81,16 @@
     </swiper>
     <div class="bottom-image-list"
          v-show="this.type === 'crop'">
+      <div class="image-item upload-image"
+           @click="$refs.inputFile.click()">
+        <input ref="inputFile"
+               name="file"
+               @change="uploadImg"
+               style="display: none"
+               type="file"
+               multiple="multiple"
+               accept="image/*" />
+      </div>
       <div class="image-item"
            @click="imgClick(img.url)"
            v-for="img in bottomImageList"
@@ -124,25 +134,25 @@
 </template>
 
 <script>
-import img1 from '../../public/images/1.jpg'
-import img2 from '../../public/images/2.jpg'
-import img3 from '../../public/images/3.jpg'
-import img4 from '../../public/images/4.jpg'
-import img5 from '../../public/images/5.jpg'
+// import img1 from '../../public/images/1.jpg'
+// import img2 from '../../public/images/2.jpg'
+// import img3 from '../../public/images/3.jpg'
+// import img4 from '../../public/images/4.jpg'
+// import img5 from '../../public/images/5.jpg'
 import img6 from '../../public/images/6.jpg'
-import img7 from '../../public/images/7.jpg'
-import img8 from '../../public/images/8.jpg'
-import img9 from '../../public/images/9.jpg'
-import img10 from '../../public/images/10.jpg'
-import img11 from '../../public/images/11.jpg'
-import img12 from '../../public/images/12.jpg'
-import img13 from '../../public/images/13.jpg'
-import img14 from '../../public/images/14.jpg'
-import img15 from '../../public/images/15.jpg'
-import img16 from '../../public/images/16.jpg'
-import img17 from '../../public/images/17.jpg'
+// import img7 from '../../public/images/7.jpg'
+// import img8 from '../../public/images/8.jpg'
+// import img9 from '../../public/images/9.jpg'
+// import img10 from '../../public/images/10.jpg'
+// import img11 from '../../public/images/11.jpg'
+// import img12 from '../../public/images/12.jpg'
+// import img13 from '../../public/images/13.jpg'
+// import img14 from '../../public/images/14.jpg'
+// import img15 from '../../public/images/15.jpg'
+// import img16 from '../../public/images/16.jpg'
+// import img17 from '../../public/images/17.jpg'
 import img18 from '../../public/images/18.jpg'
-import img19 from '../../public/images/19.jpg'
+// import img19 from '../../public/images/19.jpg'
 import { imageLoad, imgFilter, canvasBlob, compressor, md5 } from '../utils/media'
 import Hammer from 'hammerjs'
 import CropItem from '../components/CropItem'
@@ -151,6 +161,10 @@ export default {
   components: { CropItem },
   data () {
     return {
+      params: {
+        maxPercentage: 1,
+        minPercentage: 1
+      },
       cropImgList: [],
       showCropPage: false,
       cropImgIndex: 0,
@@ -167,7 +181,7 @@ export default {
       filterIndex: 0, // 滤镜模式选中的图片索引
       type: 'crop', // 裁切模式:crop 滤镜模式:filter 涂鸦模式:draw
       selectType: 'single', // 单选模式:single 多选模式: mul 
-      imageList: [img18, img6, img17, img19, img1, img2, img3, img4, img5, img7, img8, img9, img10, img11, img12, img13, img14, img15, img16], // 可选图片列表
+      imageList: [img18, img6], // 可选图片列表
       selectIndex: 0, // 当前裁切模式选中的图片
       selectList: [], // 已经选中的图片列表
       filterTypes: [ // 滤镜类型
@@ -586,6 +600,17 @@ export default {
         }
       }
     },
+    uploadImg (event) {
+      const that = this
+      for (const file of event.target.files) {
+        const fr = new FileReader(file)
+        fr.readAsDataURL(file)
+        fr.onload = function () {
+          that.imageList.push(this.result)
+          that.imgClick(this.result)
+        }
+      }
+    },
     /**
      * 切换展示比例，要不宽度撑满，要不高度撑满
      */
@@ -655,8 +680,8 @@ export default {
     }
   },
   async created () {
-    // 默认选中第一张
-    await this.imgClick(this.imageList[0])
+    // // 默认选中第一张
+    // await this.imgClick(this.imageList[0])
   },
   mounted () {
     // Create an instance of Hammer with the reference.
@@ -834,6 +859,12 @@ export default {
       box-sizing: border-box;
       cursor: pointer;
       position: relative;
+      &.upload-image {
+        background-image: url("../../public/images/add_image.png");
+        background-size: 99%;
+        background-position: center;
+        background-repeat: no-repeat;
+      }
       .select-icon {
         width: 17px;
         height: 17px;

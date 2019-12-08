@@ -1,32 +1,30 @@
+<!--
+ * @Author: your name
+ * @Date: 2019-12-07 07:30:55
+ * @LastEditTime: 2019-12-08 17:57:50
+ * @LastEditors: Please set LastEditors
+ * @Description: In User Settings Edit
+ * @FilePath: /image-crop/src/views/Demo.vue
+ -->
 <template>
   <div class="demo-page">
-      <div id="test" class="demo-container"></div>
+    <select-image :libraryList="imageList">1</select-image>
   </div>
 </template>
 
 <script>
-import Hammer from 'hammerjs'
+import img6 from '../../public/images/6.jpg'
+import img18 from '../../public/images/18.jpg'
+import SelectImage from '../components/SelectImage'
 export default {
   name: 'DemoPage',
+  components: { SelectImage },
+  data () {
+    return {
+      imageList: [img18, img6], // 可选图片列表
+    }
+  },
   mounted () {
-    // Create an instance of Hammer with the reference.
-    var hammer = new Hammer(document.getElementById("test"));
-    // 开启纵向手势
-    hammer.get('pan').set({ direction: Hammer.DIRECTION_ALL });
-    // 开启捏放手势
-    hammer.get('pinch').set({ enable: true });
-    hammer.on('panstart', (e) => {
-        console.log('panstart')
-    });
-    hammer.on('panmove', (e) => {
-      console.log('pan move',e.center)
-    });
-    hammer.on('pinch', (e) => {
-      console.log('pan pinch',e)
-    });
-    hammer.on('panend', () => {
-        console.log('panend')
-    });
   }
 }
 </script>
@@ -34,10 +32,5 @@ export default {
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped lang="less">
 .demo-page {
-  .demo-container{
-      width: 100vw;
-      height: 100vw;
-      background: red;
-  }
 }
 </style>
