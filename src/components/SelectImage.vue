@@ -1,7 +1,7 @@
 <!--
  * @Author: akrio
  * @Date: 2019-12-08 09:20:18
- * @LastEditTime: 2019-12-08 21:58:16
+ * @LastEditTime: 2019-12-09 21:01:38
  * @LastEditors: Please set LastEditors
  * @Description: 图片裁切页面
  * @FilePath: /image-crop/src/components/SelectImage.vue
@@ -305,12 +305,12 @@ export default {
         const imagePercentage = imgWidth / imgHeight
         if (imagePercentage < minPercentage) {
           // 宽高比小于标准说明，图片宽度需要加宽，至少到达minPercentage
-          this.currentImg.crop.minScale = 0.8 / imgWidth
+          this.currentImg.crop.minScale = minPercentage * cropWidth / imgWidth
           changeScale = true
         }
         if (imagePercentage > maxPercentage) {
           // 宽高比大于标准说明，图片高度需要加高，至少到达minPercentage
-          this.currentImg.crop.minScale = 1 / 1.91 / imgHeight
+          this.currentImg.crop.minScale = 1 / maxPercentage * cropHeight / imgHeight
           changeScale = true
         }
         if (changeScale) {
@@ -327,8 +327,8 @@ export default {
       if (init) {
         this.currentImg.crop.scale = scale
         // 将图片居中显示
-        this.currentImg.crop.y = (imgHeight * scale - cropHeight) / 2
-        this.currentImg.crop.x = (imgWidth * scale - cropWidth) / 2
+        // this.currentImg.crop.y = (imgHeight * scale - cropHeight) / 2
+        // this.currentImg.crop.x = (imgWidth * scale - cropWidth) / 2
       } else {
         // 如果不是初始化则切换图片模式，宽顶满 或者高顶满
         if (this.currentImg.crop.scale !== cropHeight / imgHeight) {
