@@ -79,8 +79,8 @@ export default {
       default: () => {
         return {
           selectType: 'single', // 单选模式:single 多选模式: mul 
-          maxPercentage: 1, // 接受的最大裁切比例
-          minPercentage: 1 // 接受的最小裁切比例
+          maxPercentage: 1.91, // 接受的最大裁切比例
+          minPercentage: 0.8 // 接受的最小裁切比例
         }
       }
     },
@@ -190,7 +190,6 @@ export default {
  * 切换选中方式 single:单选 mul:多选
  */
     switchSelectType () {
-      this.fullSwitch()
       if (this.selectType === 'single') {
         this.selectType = 'mul'
         // 单选切换到多选直接锁定单选的裁切比例
@@ -209,16 +208,14 @@ export default {
  * 切换展示比例，要不宽度撑满，要不高度撑满
  */
     switchFull () {
-      // 计算默认的缩放
-      let fullScale = 1
-      const { clientWidth: cropWidth, clientHeight: cropHeight } = this.$refs.crop
+      this.fullSwitch({})
       this.validateMargin()
     },
     /**
- * 通过按钮触发缩放
- * @param shrink 是否缩小
- */
-    f (shrink) {
+     * 通过按钮触发缩放
+     * @param shrink 是否缩小
+     */
+    shrinkClick (shrink) {
       let imgScale = 1
       if (shrink) {
         imgScale = this.currentImg.crop.scale * 0.9
@@ -229,23 +226,7 @@ export default {
     },
     scale (num) {
       let scale = num
-      let minScale = 1
-      // 单选模式，判断图片长边至少达到100%宽度
-      if (this.selectType === 'single') {
-        if (this.currentImg.image.width >= this.currentImg.image.height) {
-          // 宽大于高，则说明宽度至少要达到100%宽度的缩放比
-          minScale = this.fullScale({ type: 'width' })
-        } else {
-          minScale = this.fullScale({ type: 'height' })
-        }
-      } else {
-        if (this.$refs.crop.clientWidth >= this.$refs.crop.clientHeight) {
-          // 宽大于高，则说明宽度至少要达到100%宽度的缩放比
-          minScale = this.fullScale({ type: 'width' })
-        } else {
-          minScale = this.fullScale({ type: 'height' })
-        }
-      }
+      let minScale = this.currentImg.crop.minScale
       const maxScale = minScale * 3
       if (scale < minScale) {
         scale = minScale
@@ -301,7 +282,7 @@ export default {
      * @param init 是否为初始化
      * @return: 
      */
-    fullSwitch (init = false) {
+    fullSwitch ({ init = false }) {
       // 计算获取裁切框大小
       let cropWidth = this.$refs.crop.clientWidth
       let cropHeight = this.$refs.crop.clientHeight
@@ -315,8 +296,46 @@ export default {
         // 发现通篇缩放之后比裁切框小，则说明不合格，比例需要按照高度铺满去调整
         scale = cropHeight / imgHeight
       }
+      // 只有单图才会存在比例过于奇怪问题，多图因为是从单图继承的比例，所以多图直接无视
+      if (this.selectType === 'single') {
+        let changeScale = false
+        // 同时计算图片的最小缩放，防止图片因为比例过于奇怪导致无法显示
+        const { maxPercentage, minPercentage } = this.params
+        // 获取真实图片宽高比
+        const imagePercentage = imgWidth / imgHeight
+        if (imagePercentage < minPercentage) {
+          // 宽高比小于标准说明，图片宽度需要加宽，至少到达minPercentage
+          this.currentImg.crop.minScale = 0.8 / imgWidth
+          changeScale = true
+        }
+        if (imagePercentage > maxPercentage) {
+          // 宽高比大于标准说明，图片高度需要加高，至少到达minPercentage
+          this.currentImg.crop.minScale = 1 / 1.91 / imgHeight
+          changeScale = true
+        }
+        if (changeScale) {
+          scale = this.currentImg.crop.minScale
+        } else {
+          if (imgHeight * scale > cropHeight) {
+            // 发现通篇缩放之后比裁切框小，则说明不合格，比例需要按照高度铺满去调整
+            this.currentImg.crop.minScale = cropHeight / imgHeight
+          } else {
+            this.currentImg.crop.minScale = cropWidth / imgWidth
+          }
+        }
+      }
       if (init) {
         this.currentImg.crop.scale = scale
+        // 将图片居中显示
+        this.currentImg.crop.y = (imgHeight * scale - cropHeight) / 2
+        this.currentImg.crop.x = (imgWidth * scale - cropWidth) / 2
+      } else {
+        // 如果不是初始化则切换图片模式，宽顶满 或者高顶满
+        if (this.currentImg.crop.scale !== cropHeight / imgHeight) {
+          this.currentImg.crop.scale = cropHeight / imgHeight
+        } else {
+          this.currentImg.crop.scale = cropWidth / imgWidth
+        }
       }
     },
     async imgClick (img) {
@@ -375,7 +394,7 @@ export default {
        * 1.获取裁切框比例
        * 2.计算横纵坐标
        * */
-      this.fullSwitch()
+      this.fullSwitch({ init: true })
     },
     /**
 * @description: 显示图库tab点击
