@@ -1,7 +1,7 @@
 <!--
  * @Author: akrio
  * @Date: 2019-12-08 09:20:18
- * @LastEditTime: 2019-12-09 21:01:38
+ * @LastEditTime: 2019-12-13 10:38:25
  * @LastEditors: Please set LastEditors
  * @Description: 图片裁切页面
  * @FilePath: /image-crop/src/components/SelectImage.vue
@@ -70,6 +70,7 @@
 <script>
 import CropHeader from '@/components/Header'
 import { imageLoad } from '../utils/media'
+import Hammer from 'hammerjs'
 export default {
   name: 'SelectImageComponent',
   components: { CropHeader },

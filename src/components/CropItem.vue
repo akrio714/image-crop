@@ -10,7 +10,6 @@
            ref="img"
            :src="currentImg.url"
            :key="currentImg.url" />
-           <div></div>
     </div>
   </div>
 </template>

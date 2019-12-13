@@ -1,3 +1,11 @@
+<!--
+ * @Author: your name
+ * @Date: 2019-12-07 07:30:55
+ * @LastEditTime: 2019-12-13 10:54:55
+ * @LastEditors: your name
+ * @Description: In User Settings Edit
+ * @FilePath: /image-crop/src/App.vue
+ -->
 <template>
   <div id="app">
     <router-view />
@@ -18,10 +26,17 @@ export default {
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
+    -webkit-touch-callout:none;
+  -webkit-user-select:none;
+  -khtml-user-select:none;
+  -moz-user-select:none;
+  -ms-user-select:none;
+  user-select:none;
 }
 .cube { 
    backface-visibility: hidden; 
    perspective: 1000; 
    transform: translateZ(0); 
 }
+
 </style>

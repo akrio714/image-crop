@@ -1,7 +1,7 @@
 <!--
  * @Author: akrio
  * @Date: 2019-12-09 21:17:42
- * @LastEditTime: 2019-12-09 22:20:31
+ * @LastEditTime: 2019-12-13 10:35:56
  * @LastEditors: Please set LastEditors
  * @Description: 滤镜样式页面
  * @FilePath: /image-crop/src/components/Filter.vue
@@ -10,16 +10,47 @@
   <div class="filter-page-component">
     <crop-header type="filter"></crop-header>
     <div class="header-image-list">
-        <div class="image-item" v-for="i in 10" :key="i">1</div>
+      <draggable v-model="imageList"
+                 group="people"
+                 :disabled="drag"
+                 direction="vertical"
+                >
+        <thumbnail class="image-item"
+             v-for="image in imageList"
+             :key="image.url"></thumbnail>
+      </draggable>
     </div>
   </div>
 </template>
 
 <script>
 import CropHeader from '@/components/Header'
+import Draggable from 'vuedraggable'
+import Thumbnail from './Thumbnail'
+import img6 from '../../public/images/6.jpg'
+import img18 from '../../public/images/18.jpg'
+import img20 from '../../public/images/24.png'
+import img21 from '../../public/images/23.png'
 export default {
   name: 'FilterComponent',
-  components: { CropHeader }
+  components: { CropHeader, Draggable,Thumbnail },
+  props: {
+    imageList: { // 图片列表
+      type: Array,
+      default: () => { return [{ url: img6 }, { url: img18 }, { url: img20 }, { url: img21 }] }
+    }
+  },
+  computed: {
+    filterList () {
+      return []
+    }
+  },
+  data () {
+    return {
+      drag: true,
+      myArray: [{ name: '1' }, { name: '2' }, { name: '3' }, { name: '4' }]
+    }
+  }
 }
 </script>
 
@@ -33,16 +64,25 @@ export default {
   display: flex;
   flex-direction: column;
   .header-image-list {
-      height: 100vw;
-      width: 100vw;
-      overflow-x: scroll;
-      .image-item{
-        height: 150px;
-        width: 150px;
-        background: red;
-        margin: 0 7px;
-        display: inline-block;
+    height: 100vw;
+    width: 100vw;
+    overflow-x: scroll;
+    white-space: nowrap;
+    .image-item {
+      @mul-crop-size: 86vw;
+      @mul-margin: 2vw;
+      height: @mul-crop-size;
+      width: @mul-crop-size;
+      background: red;
+      margin: 0 @mul-margin;
+      display: inline-block;
+      &:first-child {
+        margin-left: @mul-margin*2;
       }
+      &:last-child {
+        margin-right: @mul-margin*2;
+      }
+    }
   }
 }
 </style>
