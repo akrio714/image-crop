@@ -12,12 +12,12 @@
     <div class="header-image-list">
       <draggable v-model="imageList"
                  group="people"
-                 :disabled="drag"
-                 direction="vertical"
-                >
+                 :delay="800"
+                 :delayOnTouchOnly="true">
         <thumbnail class="image-item"
-             v-for="image in imageList"
-             :key="image.url"></thumbnail>
+                   v-for="image in imageList"
+                   :key="image.url"
+                   @on-long-press="headerImagePress"></thumbnail>
       </draggable>
     </div>
   </div>
@@ -33,12 +33,18 @@ import img20 from '../../public/images/24.png'
 import img21 from '../../public/images/23.png'
 export default {
   name: 'FilterComponent',
-  components: { CropHeader, Draggable,Thumbnail },
+  components: { CropHeader, Draggable, Thumbnail },
   props: {
     imageList: { // 图片列表
       type: Array,
       default: () => { return [{ url: img6 }, { url: img18 }, { url: img20 }, { url: img21 }] }
+    },
+    cropSize: { // 裁切框大小
+      type: Object,
+      required: true
     }
+  },
+  methods: {
   },
   computed: {
     filterList () {
@@ -47,8 +53,6 @@ export default {
   },
   data () {
     return {
-      drag: true,
-      myArray: [{ name: '1' }, { name: '2' }, { name: '3' }, { name: '4' }]
     }
   }
 }
@@ -68,6 +72,7 @@ export default {
     width: 100vw;
     overflow-x: scroll;
     white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
     .image-item {
       @mul-crop-size: 86vw;
       @mul-margin: 2vw;

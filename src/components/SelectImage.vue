@@ -64,6 +64,7 @@
       <div class="tool-btn"
            @click="showVideo">视频</div>
     </div>
+    <image-filter :imageList="selectList" :cropSize="cropSize"></image-filter>
   </div>
 </template>
 
@@ -71,9 +72,10 @@
 import CropHeader from '@/components/Header'
 import { imageLoad } from '../utils/media'
 import Hammer from 'hammerjs'
+import ImageFilter from '../components/Filter'
 export default {
   name: 'SelectImageComponent',
-  components: { CropHeader },
+  components: { CropHeader, ImageFilter },
   props: {
     params: {
       type: Object,
