@@ -1,14 +1,15 @@
 <!--
  * @Author: akrio
  * @Date: 2019-12-08 09:20:18
- * @LastEditTime: 2019-12-13 10:38:25
+ * @LastEditTime: 2019-12-15 16:53:31
  * @LastEditors: Please set LastEditors
  * @Description: 图片裁切页面
  * @FilePath: /image-crop/src/components/SelectImage.vue
  -->
 <template>
   <div class="select-image-component">
-    <crop-header type="crop"></crop-header>
+    <crop-header type="crop"
+                 @next="toFilter"></crop-header>
     <div class="crop-container">
       <div class="crop-img-container"
            ref="crop"
@@ -64,7 +65,10 @@
       <div class="tool-btn"
            @click="showVideo">视频</div>
     </div>
-    <image-filter :imageList="selectList" :cropSize="cropSize"></image-filter>
+    <image-filter v-if="type === 'filter'"
+                  :imageList="selectList"
+                  :type="selectType"
+                  :cropSize="cropSize"></image-filter>
   </div>
 </template>
 
@@ -104,6 +108,7 @@ export default {
       imageList: [],
       selectType: 'single', // 单选模式:single 多选模式: mul 
       selectIndex: 0, // 当前裁切模式选中的图片
+      type: 'crop'
     }
   },
   computed: {
@@ -130,6 +135,12 @@ export default {
       const scale = this.currentImg.crop.scale
       let imgWidth = cropImg.width * scale
       let imgHeight = cropImg.height * scale
+      if (imgWidth > document.body.clientWidth) {
+        imgWidth = document.body.clientWidth
+      }
+      if (imgHeight > document.body.clientWidth) {
+        imgHeight = document.body.clientWidth
+      }
       if (this.selectType === 'mul') {
         // 多选则锁死裁切框
         imgWidth = this.lockSize.width
@@ -172,7 +183,9 @@ export default {
     },
   },
   methods: {
-
+    toFilter () {
+      this.type = 'filter'
+    },
     /**
      * @description: 上传图片方法
      * @param {type} 
@@ -427,6 +440,8 @@ export default {
     this.imageList = this.libraryList
   },
   mounted () {
+    this.imgClick(this.libraryList[0])
+    this.toFilter()
     // Create an instance of Hammer with the reference.
     var cropHammer = new Hammer(this.$refs.elCrop);
     // 开启纵向手势
@@ -473,7 +488,7 @@ export default {
   left: 0;
   top: 0;
   width: 100vw;
-  height: 100vh;
+  height: -webkit-fill-available;
   display: flex;
   flex-direction: column;
   // 主体的裁切容器
@@ -626,7 +641,9 @@ export default {
     display: flex;
     align-items: center;
     justify-content: space-around;
-    padding-bottom: 20px;
+    padding-bottom: env(
+      safe-area-inset-bottom
+    );
     .tool-btn {
     }
   }

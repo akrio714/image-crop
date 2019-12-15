@@ -286,6 +286,12 @@ export default {
       const scale = this.currentImg.crop.scale
       let imgWidth = cropImg.width * scale
       let imgHeight = cropImg.height * scale
+      if (imgWidth > document.body.clientWidth) {
+        imgWidth = document.body.clientWidth
+      }
+      if (imgHeight > document.body.clientWidth) {
+        imgHeight = document.body.clientWidth
+      }
       if (this.selectType === 'mul') {
         // 多选则锁死裁切框
         imgWidth = this.lockSize.width
@@ -347,15 +353,8 @@ export default {
     async exportImg () {
       this.cropImgList = []
       // 获取当前裁切框的大小和其中图片大小
-      let cropWidth = 0
-      let cropHeight = 0
-      if (this.selectType === 'single') {
-        cropWidth = this.$refs.crop.clientWidth
-        cropHeight = this.$refs.crop.clientHeight
-      } else {
-        cropWidth = this.lockSize.width
-        cropHeight = this.lockSize.height
-      }
+      let cropWidth = this.cropSize.w
+      let cropHeight = this.cropSize.h
       for (let i = 0; i < this.selectList.length; i++) {
         const model = this.selectList[i]
         const canvas = document.createElement('canvas')
