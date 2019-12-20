@@ -103,6 +103,7 @@ export default {
   },
   created () {
     this.imageListCopy = _.cloneDeep(this.imageList)
+    // 分别裁切出每张图片缩略图
   }
 }
 </script>
@@ -125,7 +126,6 @@ export default {
     -webkit-overflow-scrolling: touch;
     display: flex;
     align-items: center;
-    justify-content: center;
     .outer {
       display: flex;
       align-items: center;

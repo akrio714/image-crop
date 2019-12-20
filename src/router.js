@@ -4,6 +4,7 @@ import Demo from './views/Demo.vue'
 import Home from './views/Home.vue'
 import Crop from './views/Crop.vue'
 import Filter from './views/Filter.vue'
+import Pixi from './views/Pixi.vue'
 Vue.use(Router)
 
 export default new Router({
@@ -24,9 +25,14 @@ export default new Router({
       component: Filter
     },
     {
-      path: '/',
+      path: '/home',
       name: 'Home',
       component: Home
+    },
+    {
+      path: '/',
+      name: 'Pixi',
+      component: Pixi
     },
   ]
 })

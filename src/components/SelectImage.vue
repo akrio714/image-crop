@@ -439,9 +439,7 @@ export default {
     this.selectType = this.params.selectType
     this.imageList = this.libraryList
   },
-  mounted () {
-    this.imgClick(this.libraryList[0])
-    this.toFilter()
+  async mounted () {
     // Create an instance of Hammer with the reference.
     var cropHammer = new Hammer(this.$refs.elCrop);
     // 开启纵向手势
@@ -477,6 +475,12 @@ export default {
       if (this.selectType === 'single') {
         this.switchFull()
       }
+    })
+    await this.imgClick(this.libraryList[0])
+    this.switchSelectType()
+    await this.imgClick(this.libraryList[1])
+    this.$nextTick(() => {
+      this.toFilter()
     })
   }
 }
@@ -641,9 +645,7 @@ export default {
     display: flex;
     align-items: center;
     justify-content: space-around;
-    padding-bottom: env(
-      safe-area-inset-bottom
-    );
+    padding-bottom: env(safe-area-inset-bottom);
     .tool-btn {
     }
   }
