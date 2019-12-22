@@ -1,84 +1,95 @@
+<!--
+ * @Author: your name
+ * @Date: 2019-12-07 07:30:55
+ * @LastEditTime : 2019-12-22 16:10:16
+ * @LastEditors  : Please set LastEditors
+ * @Description: In User Settings Edit
+ * @FilePath: /image-crop/src/views/Home.vue
+ -->
 <template>
-  <div>
-    <div style="font-size:20px;color:red;" @click="toDemo">演示DEMO</div>
-    <div style="white-space:pre;text-align:left;padding:40px;">
-    # 图片裁切
-
-    单图模式：图片默认会长边顶满屏幕，短边比例自适应。图片可进行放大，可视区域即为裁切后图片。所以图片比例会随着放大逐渐趋近于1。
-
-    多图模式：单图模式选择好比例后，多图选中后都会沿用之前单图比例，保持裁切出的多张图片比例一致。
-    ## 演示 demo
-
-    ![./public/demo1.gif](./public/demo1.gif)
-
-    ### 图片缩放
-
-    图片最小缩放为长边顶满,最大缩放为最小的3倍。
-
-    ### 图片一键铺满
-
-    实现图片是宽度100%,还是高度100%的切换。
-
-    ### 多图裁切
-
-    统一一个比例对图片进行裁切
-
-    ### 图片滤镜
-
-    支持6种滤镜
-
-    ### 缩略图
-
-    图片裁切的时候会同时获取2张图片，1张为高清原图，1张为缩略，缩略图会限制图片的最大300x300，最小50x50，图片质量压缩0.6(没写配置直接写死了)
-
-    ## 优化
-
-    ### iphone拖拽卡顿
-
-    拖拽主要靠translate实现x,y坐标的移动，在pc和安卓设备中很流畅。但是iphone上会有明显卡顿。实际是由于没有开启gpu加速问题，只要使用translate3d即可开启gpu加速。
-
-    ### 图片上传去重
-
-    我们在使用qq的时候发送同文件会秒传，实际是比较了一下服务器和上传文件是否相同，相同则直接读取服务器文件。同理，每次上传的图片的时候获取图片md5码并作为名字进行上传，以后每次上传的时候通过head请求判断服务器上是否有同名文件，相同则不进行上传。
-
-    ### 图片压缩
-
-    图片上传一般会对图片的大小进行限制，这里直接写死最小宽度320，最大宽度1080，图片质量不压缩(没写配置直接写死了)
-
-    ### 选择滤镜优化
-
-    由于滤镜使用js进行计算，每次拖动图片就会重新计算多张滤镜，即使滤镜部分图片已经压缩到50x50每次计算时间也是相当耗时。所以在选择滤镜页面使用css实现一个相同效果的滤镜，裁切的时候在使用js计算。
-
-    tip:为什么一定使用js计算滤镜，因为canvas绘图的时候css滤镜不支持。
-
-    ## 在线Demo
-
-    ![./public/demo.png](./public/demo.png)
-
-    ## Dependencies
-
-    * [browser-md5-file](https://github.com/forsigner/browser-md5-file)
-    * [hammerjs](https://github.com/hammerjs/hammer.js)
-    * [image-compressor.js](https://github.com/fengyuanchen/compressorjs)
-    * [normalize.css](https://github.com/necolas/normalize.css)
-    * [vue-awesome-swiper](https://github.com/surmon-china/vue-awesome-swiper)
-    * [vue-lazyload](https://github.com/hilongjw/vue-lazyload)
-
-    ## License
-    This content is released under the [MIT](http://opensource.org/licenses/MIT) License.
-    </div>
-
-    <h1>备案号:津ICP备18009905号</h1>
+  <div class="crop-image-frame"
+       ref="parent">
+    <canvas ref="canvas"></canvas>
   </div>
 </template>
 <style lang="less" scoped>
+.crop-image-frame {
+  width: 100vw;
+  height: 100vw;
+}
 </style>
 <script>
+import * as PIXI from 'pixi.js'
+import { Viewport } from 'pixi-viewport'
+import img6 from '../../public/images/6.jpg'
+import img1 from '../../public/images/1.jpg'
 export default {
-  methods: {
-    toDemo () {
-      this.$router.push({ name: 'Crop' })
+  data () {
+    return {
+      app: null,
+      spriteList: [],
+      scale: 1
     }
+  },
+  methods: {
+    testRotation () {
+      const sprite = this.spriteList[0]
+      sprite.anchor.set(0.9)
+      this.scale += 0.1
+      sprite.scale.set(this.scale)
+      // this.spriteList[0].rotation += 0.3;
+    }
+  },
+  mounted () {
+    const parent = this.$refs.parent
+    let app = new PIXI.Application({
+      width: parent.clientWidth,
+      height: parent.clientHeight,
+      view: this.$refs.canvas
+    });
+    this.$set(this, 'app', app)
+    app.loader
+      .add(
+        img6,
+        img1
+      )
+      .load((loader, resources) => {
+        const { width: imgWidth, height: imgHeight } = resources[img6].data
+        // create viewport
+        const viewport = new Viewport({
+          screenWidth: parent.clientWidth,
+          screenHeight: parent.clientHeight,
+          worldWidth: imgWidth,
+          worldHeight: imgHeight,
+          interaction: app.renderer.plugins.interaction // the interaction module is important for wheel to work properly when renderer.view is placed or scaled
+        })
+        // viewport.fitHeight()
+        // add the viewport to the stage
+        app.stage.addChild(viewport)
+
+        // activate plugins
+        viewport
+          .drag()
+          .pinch()
+          .wheel()
+          .decelerate()
+          .clamp({
+            
+          })
+          .clampZoom()
+        const sprite = new PIXI.Sprite(resources[img6].texture);
+        this.spriteList.push(sprite)
+        sprite.interactive = true;
+        sprite.cursor = 'grab';
+        // Add the bunny to the scene we are building
+        viewport.addChild(sprite);
+
+        // Listen for frame updates
+        // app.ticker.add(() => {
+        //   // each frame we spin the bunny around a bit
+        //   sprite.rotation += 0.01;
+        // });
+      });
   }
 }
 </script>

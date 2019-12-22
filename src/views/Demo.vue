@@ -8,7 +8,6 @@
  -->
 <template>
   <div class="demo-page">
-    <select-image :libraryList="imageList"></select-image>
   </div>
 </template>
 
