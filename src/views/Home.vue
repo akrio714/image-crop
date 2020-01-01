@@ -1,7 +1,7 @@
 <!--
  * @Author: your name
  * @Date: 2019-12-07 07:30:55
- * @LastEditTime : 2019-12-22 16:10:16
+ * @LastEditTime : 2019-12-22 18:04:49
  * @LastEditors  : Please set LastEditors
  * @Description: In User Settings Edit
  * @FilePath: /image-crop/src/views/Home.vue
@@ -21,8 +21,7 @@
 <script>
 import * as PIXI from 'pixi.js'
 import { Viewport } from 'pixi-viewport'
-import img6 from '../../public/images/6.jpg'
-import img1 from '../../public/images/1.jpg'
+import img6 from '../../public/images/18.jpg'
 export default {
   data () {
     return {
@@ -50,8 +49,7 @@ export default {
     this.$set(this, 'app', app)
     app.loader
       .add(
-        img6,
-        img1
+        img6
       )
       .load((loader, resources) => {
         const { width: imgWidth, height: imgHeight } = resources[img6].data
@@ -66,17 +64,20 @@ export default {
         // viewport.fitHeight()
         // add the viewport to the stage
         app.stage.addChild(viewport)
-
         // activate plugins
         viewport
           .drag()
           .pinch()
           .wheel()
           .decelerate()
+          .fitWorld()
           .clamp({
-            
+            direction: 'all'
           })
-          .clampZoom()
+          .clampZoom({
+            minWidth: 1000,
+            maxWidth: 2000
+          })
         const sprite = new PIXI.Sprite(resources[img6].texture);
         this.spriteList.push(sprite)
         sprite.interactive = true;
