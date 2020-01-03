@@ -21,22 +21,20 @@
 <script>
 import * as PIXI from 'pixi.js'
 import { Viewport } from 'pixi-viewport'
-import img6 from '../../public/images/18.jpg'
+import img6 from '../../public/images/20.jpg'
+// import img6 from '../../public/images/12.jpg'
 export default {
+  props:{
+    image:{
+      type:String,
+      default:img6
+    }
+  },
   data () {
     return {
       app: null,
-      spriteList: [],
-      scale: 1
-    }
-  },
-  methods: {
-    testRotation () {
-      const sprite = this.spriteList[0]
-      sprite.anchor.set(0.9)
-      this.scale += 0.1
-      sprite.scale.set(this.scale)
-      // this.spriteList[0].rotation += 0.3;
+      viewport: null,
+      spriteList: []
     }
   },
   mounted () {
@@ -49,10 +47,10 @@ export default {
     this.$set(this, 'app', app)
     app.loader
       .add(
-        img6
+        this.image
       )
       .load((loader, resources) => {
-        const { width: imgWidth, height: imgHeight } = resources[img6].data
+        const { width: imgWidth, height: imgHeight } = resources[this.image].data
         // create viewport
         const viewport = new Viewport({
           screenWidth: parent.clientWidth,
@@ -64,32 +62,63 @@ export default {
         // viewport.fitHeight()
         // add the viewport to the stage
         app.stage.addChild(viewport)
-        // activate plugins
         viewport
           .drag()
           .pinch()
           .wheel()
           .decelerate()
-          .fitWorld()
           .clamp({
             direction: 'all'
           })
-          .clampZoom({
-            minWidth: 1000,
-            maxWidth: 2000
-          })
-        const sprite = new PIXI.Sprite(resources[img6].texture);
+        this.$set(this, 'viewport', viewport)
+        /**
+        * 计算图片的最大最小缩放比
+        * 1.单图模式中宽高比必须介于 1.91 - 0.8之间
+        * 2.多图模式则按裁切框比例必须全覆盖为准
+        * 3.图片最大值为最小值3倍
+        **/
+        const scale = 3
+        const whRatio = imgWidth / imgHeight
+        if (imgWidth > imgHeight) {
+          // 宽大于高则要求比例必须小于1.91
+          if (whRatio <= 1.91) {
+            const min = imgWidth / scale
+            viewport.clampZoom({
+              minWidth: min,
+              maxWidth: min * 3
+            })
+          } else {
+            // 锁定宽度，计算高度放大多少倍可以达到1.91
+            const min = imgWidth / 1.91 / scale
+            viewport.clampZoom({
+              minHeight: min,
+              maxHeight: min * 3
+            })
+          }
+        } else {
+          // 高大于宽则要求比例必须大于0.8
+          if (whRatio >= 0.8) {
+            const min = imgHeight / scale
+            viewport.clampZoom({
+              minHeight: min,
+              maxHeight: min * 3
+            })
+          } else {
+            // 锁定高度，计算高度放大多少倍可以达到0.8
+            const min = imgHeight * 0.8 / scale
+            viewport.clampZoom({
+              minWidth: min,
+              maxWidth: min * 3
+            })
+          }
+        }
+        viewport.fitWorld()
+        const sprite = new PIXI.Sprite(resources[this.image].texture);
         this.spriteList.push(sprite)
         sprite.interactive = true;
         sprite.cursor = 'grab';
         // Add the bunny to the scene we are building
         viewport.addChild(sprite);
-
-        // Listen for frame updates
-        // app.ticker.add(() => {
-        //   // each frame we spin the bunny around a bit
-        //   sprite.rotation += 0.01;
-        // });
       });
   }
 }
